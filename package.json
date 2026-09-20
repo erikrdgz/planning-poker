@@ -1,0 +1,33 @@
+{
+  "name": "planning-poker",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "license": "MIT",
+  "scripts": {
+    "dev": "vite --host 127.0.0.1",
+    "dev:server": "wrangler dev --port 8787",
+    "build": "tsc -b && vite build",
+    "preview": "vite preview --host 127.0.0.1",
+    "test": "vitest run",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "deploy": "npm run build && wrangler deploy"
+  },
+  "dependencies": {
+    "lucide-react": "^0.468.0",
+    "react": "^19.1.1",
+    "react-dom": "^19.1.1"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^5.20260920.1",
+    "@types/react": "^19.1.13",
+    "@types/react-dom": "^19.1.9",
+    "@vitejs/plugin-react": "^5.0.3",
+    "prettier": "^3.6.2",
+    "typescript": "~5.9.2",
+    "vite": "^7.1.5",
+    "vitest": "^4.1.0",
+    "wrangler": "^4.0.0"
+  }
+}
