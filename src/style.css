@@ -100,6 +100,15 @@ button svg {
   --accent: #377661;
 }
 .header {
+  /* Sticky because the settings and leave-room controls live here and are the
+     only way to reach either. In the flow they left with the first screenful
+     and could not be got back without scrolling all the way up.
+
+     Keyed to --wash, which each theme redefines for light and dark, with a
+     blur so the pastel background variants still read underneath. */
+  position: sticky;
+  top: 0;
+  z-index: 30;
   height: 104px;
   max-width: 1440px;
   width: 100%;
@@ -109,6 +118,8 @@ button svg {
   justify-content: space-between;
   padding: 0 56px;
   border-bottom: 1px solid #e4e7ef;
+  background: color-mix(in srgb, var(--wash) 85%, transparent);
+  backdrop-filter: blur(14px);
 }
 .brand {
   display: flex;
@@ -2681,52 +2692,83 @@ dialog {
   }
 }
 
+/* A two-column band that collapses to one, with the credit on its own
+   baseline underneath. Flex-wrap alone let the brand block and the links
+   drift out of alignment at in-between widths. */
 .app .product-footer {
-  align-items: center;
-  gap: 24px;
-  padding: 28px 56px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: start;
+  column-gap: 40px;
+  row-gap: 24px;
+  padding: 30px 56px 26px;
   border-top: 1px solid color-mix(in srgb, currentColor 15%, transparent);
   color: #687087;
 }
-.product-footer-brand strong {
+.product-footer-lockup {
   display: flex;
   align-items: center;
-  gap: 9px;
+  gap: 10px;
+  margin: 0;
+}
+.product-footer-mark {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
+  background: var(--accent);
+  color: #fff;
+  flex-shrink: 0;
+}
+.product-footer-lockup strong {
   font-size: 17px;
   font-weight: 650;
   letter-spacing: -0.5px;
   color: var(--accent);
 }
-.product-footer-brand p {
-  margin: 7px 0 12px;
+.product-footer-line {
+  margin: 10px 0 0;
+  max-width: 34ch;
   line-height: 1.6;
 }
-.product-footer-brand small {
-  font-size: 11px;
-}
-.product-footer nav {
+.product-footer-links {
   display: flex;
-  flex-wrap: wrap;
-  gap: 8px 22px;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  justify-self: end;
 }
-.product-footer a {
+.product-footer-links a {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 8px 0;
+  padding: 6px 0;
+  color: inherit;
   text-decoration: none;
   transition: color 0.18s ease;
 }
-.product-footer a:hover {
+.product-footer-links a:hover {
   color: var(--accent);
-  text-decoration: underline;
-  text-underline-offset: 4px;
+}
+.product-footer-links a:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 4px;
+  border-radius: 3px;
+}
+.product-footer-credit {
+  grid-column: 1 / -1;
+  margin: 0;
+  padding-top: 18px;
+  border-top: 1px solid color-mix(in srgb, currentColor 12%, transparent);
+  font-size: 11px;
 }
 @media (max-width: 640px) {
   .app .product-footer {
-    align-items: flex-start;
-    flex-direction: column;
-    gap: 16px;
-    padding: 24px;
+    grid-template-columns: minmax(0, 1fr);
+    padding: 24px 22px;
+  }
+  .product-footer-links {
+    justify-self: start;
   }
 }

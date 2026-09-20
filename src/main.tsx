@@ -896,31 +896,40 @@ function App() {
       </main>
       <footer className="product-footer">
         <div className="product-footer-brand">
-          <strong>
-            common ground<span aria-hidden="true">✳</span>
-          </strong>
-          <p>Independent thoughts. Better conversations.</p>
-          <small>Designed and built by Erik Rodríguez</small>
+          <p className="product-footer-lockup">
+            <span className="product-footer-mark">
+              <Layers2 size={19} />
+            </span>
+            <strong>
+              common ground<span aria-hidden="true">✳</span>
+            </strong>
+          </p>
+          <p className="product-footer-line">
+            Independent thoughts. Better conversations.
+          </p>
         </div>
-        <nav aria-label="Project links">
-          <a href="https://www.erikrod.com" target="_blank" rel="noreferrer">
-            Portfolio <span aria-hidden="true">↗</span>
-          </a>
+        <nav className="product-footer-links" aria-label="Project links">
           <a
             href="https://www.erikrod.com/common-ground"
             target="_blank"
             rel="noreferrer"
           >
-            Behind the project
+            Behind the project <ArrowUpRight size={13} aria-hidden="true" />
           </a>
           <a
             href="https://github.com/erikrdgz/planning-poker"
             target="_blank"
             rel="noreferrer"
           >
-            View source
+            View source <ArrowUpRight size={13} aria-hidden="true" />
+          </a>
+          <a href="https://www.erikrod.com" target="_blank" rel="noreferrer">
+            Portfolio <ArrowUpRight size={13} aria-hidden="true" />
           </a>
         </nav>
+        <p className="product-footer-credit">
+          Designed and built by Erik Rodríguez
+        </p>
       </footer>
       <dialog
         className="settings-dialog"
