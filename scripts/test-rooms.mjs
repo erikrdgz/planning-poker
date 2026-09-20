@@ -40,6 +40,19 @@ try {
   await assert.rejects(() => connect(false, host.id), /rejected/)
   assert.equal(host.ws.readyState, WebSocket.OPEN)
   const guest = clients[1]
+  send(host, 'ticket-update', {
+    title: 'TEST-42 · Shared title',
+    url: 'https://example.atlassian.net/browse/TEST-42',
+  })
+  await until(() =>
+    clients.every((c) => c.state.ticket.title === 'TEST-42 · Shared title'),
+  )
+  send(guest, 'ticket-update', {
+    title: 'Forged ticket',
+    url: 'https://example.com',
+  })
+  await delay(100)
+  assert.equal(host.state.ticket.title, 'TEST-42 · Shared title')
   send(guest, 'vote', { card: '13' })
   await until(() => host.state.players.find((p) => p.id === guest.id)?.voted)
   assert.equal(
@@ -67,6 +80,7 @@ try {
   await until(() => clients.every((c) => c.state.round === 2))
   assert(host.state.players.every((p) => !p.voted))
   assert.equal(host.state.consensus, null)
+  assert.deepEqual(host.state.ticket, { title: '', url: '' })
   await delay(80)
   send(guest, 'vote', { card: 'coffee' })
   await until(() => host.state.players.find((p) => p.id === guest.id).voted)
