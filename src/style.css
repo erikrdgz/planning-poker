@@ -2096,3 +2096,143 @@ dialog {
 .background-picker button > span {
   border-radius: 9px;
 }
+.ticket-panel {
+  background: #ffffffb8;
+  border: 1px solid #e6e7ef;
+  border-radius: 16px;
+  padding: 20px 24px;
+  margin-bottom: 22px;
+}
+.ticket-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+}
+.ticket-summary > div:first-child {
+  min-width: 0;
+}
+.ticket-summary h2 {
+  font-size: 19px;
+  font-weight: 600;
+  margin-top: 8px;
+  overflow-wrap: anywhere;
+  line-height: 1.4;
+}
+.ticket-summary p {
+  font-size: 13px;
+  color: #7c8298;
+  margin-top: 6px;
+}
+.ticket-actions {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-shrink: 0;
+}
+.jira-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 15px;
+  background: #eaf2ff;
+  color: #1856aa;
+  border: 1px solid #cbdcf6;
+  border-radius: 10px;
+  text-decoration: none;
+  font-size: 14px;
+  font-weight: 600;
+  white-space: nowrap;
+  transition:
+    transform 0.2s,
+    background 0.2s;
+}
+.jira-link:hover {
+  background: #dceaff;
+  transform: translateY(-2px);
+}
+.ticket-editor {
+  display: grid;
+  grid-template-columns: 1fr 1.3fr auto;
+  gap: 15px;
+  align-items: end;
+  border-top: 1px solid #e4e7ef;
+  margin-top: 20px;
+  padding-top: 20px;
+  animation: arrive 0.2s ease;
+}
+.ticket-editor label {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  font-size: 13px;
+  color: #626a80;
+}
+.ticket-editor input {
+  width: 100%;
+  min-width: 0;
+  padding: 12px;
+  border: 1px solid #d5dbea;
+  border-radius: 9px;
+  background: #fff;
+  color: #26293c;
+  font-size: 14px;
+}
+.ticket-editor p {
+  grid-column: 1/-1;
+  color: #a14433;
+  font-size: 13px;
+}
+.dark .ticket-panel {
+  background: #1e2232e8;
+  border-color: #ffffff20;
+}
+.dark .ticket-summary p,
+.dark .ticket-editor label {
+  color: #abb3ca;
+}
+.dark .ticket-editor {
+  border-color: #ffffff20;
+}
+.dark .ticket-editor input {
+  background: #292f42;
+  border-color: #566078;
+  color: #edf0ff;
+}
+.dark .jira-link {
+  background: #243b5d;
+  border-color: #43638b;
+  color: #bdd9ff;
+}
+.dark .jira-link img {
+  filter: brightness(1.8);
+}
+@media (max-width: 800px) {
+  .ticket-editor {
+    grid-template-columns: 1fr;
+  }
+  .ticket-editor .primary {
+    justify-self: start;
+  }
+  .ticket-summary {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+  .ticket-panel {
+    padding: 18px;
+  }
+  .ticket-summary h2 {
+    font-size: 17px;
+  }
+  .ticket-actions {
+    flex-wrap: wrap;
+  }
+}
+.lobby-copy > .hosting-notice {
+  font-size: 13px;
+  line-height: 1.6;
+  border-left: 3px solid var(--accent);
+  padding-left: 12px;
+  max-width: 390px;
+  margin-top: 18px;
+}

@@ -67,3 +67,11 @@ Built a lightweight Planning Poker tool to help Agile teams independently estima
 ## License and credits
 
 MIT. React (MIT), Vite and Vitest (MIT), Lucide (ISC). DM Sans and Manrope are served by Google Fonts under the SIL Open Font License; system fonts are available as fallbacks. Avatars use the device's native emoji artwork.
+
+## GitHub Pages frontend
+
+The interface is published at https://erikrdgz.github.io/planning-poker/. GitHub Pages serves static files; it cannot run multiplayer rooms. After deploying the Cloudflare Worker, set the GitHub repository variable `ROOM_SERVER_URL` to its HTTPS URL and rerun the Pages workflow. `PUBLIC_APP_ORIGIN` in Wrangler authorizes the Pages origin. Until that endpoint is configured, the public interface explains that live rooms are unavailable and disables creation/joining. The local full-stack app continues to work normally.
+
+The host can enter a ticket title and optional HTTP(S) Jira link. Participants see read-only details and an “Open on Jira” link opening a new tab. A new round clears the previous ticket. The server rejects guest edits, credentials embedded in URLs, unsafe URL schemes, and oversized fields.
+
+Jira icon: [Simple Icons](https://simpleicons.org/), CC0. Jira is an Atlassian trademark; Common Ground is an independent project.

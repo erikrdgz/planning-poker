@@ -13,5 +13,6 @@
     "bindings": [{ "name": "ROOMS", "class_name": "PokerRoom" }],
   },
   "migrations": [{ "tag": "v1", "new_sqlite_classes": ["PokerRoom"] }],
+  "vars": { "PUBLIC_APP_ORIGIN": "https://erikrdgz.github.io" },
   "observability": { "enabled": false },
 }

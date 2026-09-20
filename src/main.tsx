@@ -15,7 +15,7 @@ import {
   Users,
   X,
 } from 'lucide-react'
-import { AVATARS, CARDS, type Card, type Snapshot } from './protocol'
+import { AVATARS, CARDS, ticketUrl, type Card, type Snapshot } from './protocol'
 import './style.css'
 
 const backgrounds = [
@@ -31,11 +31,17 @@ function CardFace({ value }: { value: Card }) {
     <>{value}</>
   )
 }
+const roomsAvailable =
+  import.meta.env.BASE_URL === '/' || !!import.meta.env.VITE_ROOM_SERVER_URL
 function App() {
   const [room, setRoom] = useState<Snapshot | null>(null)
   const [code, setCode] = useState(
     () => new URLSearchParams(location.search).get('room') ?? '',
   )
+  const [editingTicket, setEditingTicket] = useState(false)
+  const [ticketTitle, setTicketTitle] = useState('')
+  const [ticketLink, setTicketLink] = useState('')
+  const [ticketError, setTicketError] = useState('')
   const [join, setJoin] = useState('')
   const [connection, setConnection] = useState<
     'idle' | 'connecting' | 'connected' | 'error'
@@ -77,11 +83,21 @@ function App() {
   }, [discussion?.status, discussion?.endsAt])
   useEffect(() => {
     if (!code) return
+    if (!roomsAvailable) {
+      setConnection('error')
+      setError(
+        'Live rooms are not connected yet. The room server is awaiting setup.',
+      )
+      return
+    }
     let active = true
     setConnection('connecting')
     setError('')
-    const url = new URL(`/api/rooms/${code}`, location.href)
-    url.protocol = location.protocol === 'https:' ? 'wss:' : 'ws:'
+    const url = new URL(
+      `/api/rooms/${code}`,
+      import.meta.env.VITE_ROOM_SERVER_URL || location.origin,
+    )
+    url.protocol = url.protocol === 'https:' ? 'wss:' : 'ws:'
     url.searchParams.set('token', id.current)
     if (creating.current) url.searchParams.set('create', '1')
     const ws = new WebSocket(url)
@@ -155,6 +171,7 @@ function App() {
       socket.current.send(JSON.stringify({ type, ...extra }))
   }
   function start() {
+    if (!roomsAvailable) return
     creating.current = true
     const next = crypto.randomUUID()
     history.replaceState(null, '', `?room=${next}`)
@@ -170,6 +187,7 @@ function App() {
     setError('')
   }
   function enter() {
+    if (!roomsAvailable) return
     let value = join.trim()
     try {
       value = new URL(value).searchParams.get('room') ?? value
@@ -249,9 +267,19 @@ function App() {
                 Pick a card. Reveal together. Make room for the conversation
                 that gets everyone on the same page.
               </p>
-              <button className="primary create-button" onClick={start}>
+              <button
+                disabled={!roomsAvailable}
+                className="primary create-button"
+                onClick={start}
+              >
                 Create a room <ArrowUpRight size={20} />
               </button>
+              {!roomsAvailable && (
+                <p className="hosting-notice" role="status">
+                  The interface is live. Shared rooms are coming once the room
+                  server is connected.
+                </p>
+              )}
               <div className="join-form">
                 <label htmlFor="join">Already invited?</label>
                 <form
@@ -267,7 +295,11 @@ function App() {
                     placeholder="Paste your room link"
                     required
                   />
-                  <button aria-label="Join room" type="submit">
+                  <button
+                    disabled={!roomsAvailable}
+                    aria-label="Join room"
+                    type="submit"
+                  >
                     <ChevronRight size={20} />
                   </button>
                 </form>
@@ -349,6 +381,105 @@ function App() {
                 </button>
               </div>
             </div>
+            <section className="ticket-panel" aria-label="Current Jira ticket">
+              <div className="ticket-summary">
+                <div>
+                  <span className="eyebrow">ON THE TABLE</span>
+                  <h2>{room?.ticket?.title || 'No ticket selected yet'}</h2>
+                  {!room?.ticket?.title && (
+                    <p>
+                      {host
+                        ? 'Add a title and Jira link to give this round some context.'
+                        : 'Your host will add the ticket for this round.'}
+                    </p>
+                  )}
+                </div>
+                <div className="ticket-actions">
+                  {room?.ticket?.url && (
+                    <a
+                      className="jira-link"
+                      href={room.ticket.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      <img
+                        src={`${import.meta.env.BASE_URL}jira.svg`}
+                        width="18"
+                        height="18"
+                        alt=""
+                      />
+                      Open on Jira
+                      <ArrowUpRight size={16} />
+                    </a>
+                  )}
+                  {host && (
+                    <button
+                      className="secondary"
+                      disabled={connection !== 'connected'}
+                      onClick={() => {
+                        setTicketTitle(room?.ticket?.title ?? '')
+                        setTicketLink(room?.ticket?.url ?? '')
+                        setTicketError('')
+                        setEditingTicket(!editingTicket)
+                      }}
+                    >
+                      {editingTicket
+                        ? 'Cancel'
+                        : room?.ticket?.title
+                          ? 'Edit ticket'
+                          : 'Add ticket'}
+                    </button>
+                  )}
+                </div>
+              </div>
+              {host && editingTicket && (
+                <form
+                  className="ticket-editor"
+                  onSubmit={(e) => {
+                    e.preventDefault()
+                    const url = ticketUrl(ticketLink)
+                    if (url === null) {
+                      setTicketError(
+                        'Enter a full https:// or http:// Jira ticket link.',
+                      )
+                      return
+                    }
+                    send('ticket-update', { title: ticketTitle, url })
+                    setEditingTicket(false)
+                    setTicketError('')
+                  }}
+                >
+                  <label>
+                    Ticket title
+                    <input
+                      autoFocus
+                      maxLength={160}
+                      value={ticketTitle}
+                      onChange={(e) => setTicketTitle(e.target.value)}
+                      placeholder="PROJ-42 · Improve the search experience"
+                    />
+                  </label>
+                  <label>
+                    Jira ticket link
+                    <input
+                      type="url"
+                      maxLength={2048}
+                      value={ticketLink}
+                      onChange={(e) => setTicketLink(e.target.value)}
+                      placeholder="https://your-team.atlassian.net/browse/PROJ-42"
+                    />
+                  </label>
+                  <button
+                    className="primary"
+                    disabled={connection !== 'connected'}
+                    type="submit"
+                  >
+                    Save ticket
+                  </button>
+                  {ticketError && <p role="alert">{ticketError}</p>}
+                </form>
+              )}
+            </section>
             <div className="workspace-grid">
               <section className="table-panel">
                 <div className="table-toolbar">

@@ -1,6 +1,7 @@
 import { DurableObject } from 'cloudflare:workers'
 import { act, view, type Room, type Player } from '../src/protocol'
 interface Env {
+  PUBLIC_APP_ORIGIN?: string
   ROOMS: DurableObjectNamespace<PokerRoom>
   ASSETS: Fetcher
 }
@@ -11,6 +12,7 @@ interface Attachment {
   round: number
   revealed: boolean
   celebrationAt: number
+  ticket: Room['ticket']
   discussion: Room['discussion']
   consensus: Room['consensus']
   last: number
@@ -23,6 +25,7 @@ export class PokerRoom extends DurableObject<Env> {
     revealed: false,
     consensus: null,
     discussion: null,
+    ticket: { title: '', url: '' },
     celebrationAt: 0,
   }
   sockets = new Map<WebSocket, Attachment>()
@@ -38,6 +41,7 @@ export class PokerRoom extends DurableObject<Env> {
         revealed: data.revealed,
         consensus: data.consensus,
         discussion: data.discussion ?? null,
+        ticket: data.ticket ?? { title: '', url: '' },
         celebrationAt: data.celebrationAt ?? 0,
       })
     }
@@ -82,6 +86,7 @@ export class PokerRoom extends DurableObject<Env> {
       revealed: this.room.revealed,
       consensus: this.room.consensus,
       discussion: this.room.discussion,
+      ticket: this.room.ticket,
       celebrationAt: this.room.celebrationAt,
       last: 0,
     })
@@ -90,7 +95,7 @@ export class PokerRoom extends DurableObject<Env> {
   }
   webSocketMessage(ws: WebSocket, raw: string | ArrayBuffer) {
     const data = this.sockets.get(ws)
-    if (!data || typeof raw !== 'string' || raw.length > 256) return
+    if (!data || typeof raw !== 'string' || raw.length > 4096) return
     const now = Date.now()
     if (now - data.last < 60) return
     data.last = now
@@ -132,6 +137,7 @@ export class PokerRoom extends DurableObject<Env> {
         revealed: false,
         consensus: null,
         discussion: null,
+        ticket: { title: '', url: '' },
         celebrationAt: 0,
       }
     this.broadcast()
@@ -144,6 +150,7 @@ export class PokerRoom extends DurableObject<Env> {
         revealed: this.room.revealed,
         consensus: this.room.consensus,
         discussion: this.room.discussion,
+        ticket: this.room.ticket,
         celebrationAt: this.room.celebrationAt,
       })
       ws.serializeAttachment(data)
@@ -160,7 +167,7 @@ export default {
     const url = new URL(request.url)
     if (url.pathname.startsWith('/api/')) {
       const origin = request.headers.get('Origin')
-      if (origin && origin !== url.origin)
+      if (origin && origin !== url.origin && origin !== env.PUBLIC_APP_ORIGIN)
         return new Response('Origin rejected', { status: 403 })
       const match = url.pathname.match(/^\/api\/rooms\/([a-f0-9-]{36})$/)
       if (!match) return new Response('Not found', { status: 404 })

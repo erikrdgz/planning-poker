@@ -11,6 +11,7 @@ function fixture(): Room {
     revealed: false,
     consensus: null,
     discussion: null,
+    ticket: { title: '', url: '' },
     celebrationAt: 0,
   }
 }
@@ -122,4 +123,35 @@ it('only lets the host celebrate and enforces a two-second cooldown', () => {
   expect(view(r, 'guest').celebrationAt).toBe(5000)
   expect(act(r, 'host', { type: 'celebrate' }, 6000)).toBe(false)
   expect(act(r, 'host', { type: 'celebrate' }, 7000)).toBe(true)
+})
+
+it('only the host can set ticket details and resets clear them', () => {
+  const r = fixture()
+  const m = {
+    type: 'ticket-update',
+    title: ' PROJ-42 Improve search ',
+    url: 'https://example.atlassian.net/browse/PROJ-42',
+  }
+  expect(act(r, 'guest', m)).toBe(false)
+  expect(act(r, 'host', m)).toBe(true)
+  expect(view(r, 'guest').ticket.title).toBe('PROJ-42 Improve search')
+  expect(view(r, 'guest').ticket.url).toBe(m.url)
+  act(r, 'host', { type: 'reset' })
+  expect(r.ticket).toEqual({ title: '', url: '' })
+})
+it('rejects unsafe or oversized ticket links', () => {
+  const r = fixture()
+  for (const url of [
+    'javascript:alert(1)',
+    'data:text/html,test',
+    'https://user:pass@example.com',
+    'not a url',
+    'https://example.com/' + 'a'.repeat(2050),
+  ])
+    expect(
+      act(r, 'host', { type: 'ticket-update', title: 'Ticket', url }),
+    ).toBe(false)
+  expect(
+    act(r, 'host', { type: 'ticket-update', title: 'Title only', url: '' }),
+  ).toBe(true)
 })

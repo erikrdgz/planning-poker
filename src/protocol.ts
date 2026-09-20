@@ -25,6 +25,23 @@ export interface Discussion {
   endsAt: number | null
   duration: number
 }
+export interface Ticket {
+  title: string
+  url: string
+}
+export function ticketUrl(value: string): string | null {
+  if (!value.trim()) return ''
+  try {
+    const url = new URL(value.trim())
+    return ['https:', 'http:'].includes(url.protocol) &&
+      !url.username &&
+      !url.password
+      ? url.href
+      : null
+  } catch {
+    return null
+  }
+}
 export interface Room {
   players: Player[]
   host: string
@@ -32,6 +49,7 @@ export interface Room {
   round: number
   consensus: Card | null
   celebrationAt: number
+  ticket: Ticket
   discussion: Discussion | null
 }
 export interface Snapshot {
@@ -43,6 +61,7 @@ export interface Snapshot {
   round: number
   consensus: Card | null
   celebrationAt: number
+  ticket: Ticket
   discussion: Discussion | null
   players: (Omit<Player, 'vote'> & { voted: boolean; vote?: Card | null })[]
 }
@@ -50,6 +69,7 @@ export function view(room: Room, you: string): Snapshot {
   return {
     type: 'state',
     serverNow: Date.now(),
+    ticket: room.ticket,
     discussion: room.discussion,
     celebrationAt: room.celebrationAt,
     you,
@@ -74,6 +94,8 @@ export function act(
     card?: unknown
     avatar?: unknown
     seconds?: unknown
+    title?: unknown
+    url?: unknown
   },
   now = Date.now(),
 ): boolean {
@@ -97,6 +119,19 @@ export function act(
     return true
   }
   if (id !== room.host) return false
+  if (message.type === 'ticket-update') {
+    if (
+      typeof message.title !== 'string' ||
+      typeof message.url !== 'string' ||
+      message.title.length > 160 ||
+      message.url.length > 2048
+    )
+      return false
+    const url = ticketUrl(message.url)
+    if (url === null) return false
+    room.ticket = { title: message.title.trim(), url }
+    return true
+  }
   if (message.type === 'celebrate' && now - room.celebrationAt >= 2000) {
     room.celebrationAt = now
     return true
@@ -141,6 +176,7 @@ export function act(
     return true
   }
   if (message.type === 'reset') {
+    room.ticket = { title: '', url: '' }
     room.discussion = null
     room.revealed = false
     room.consensus = null
