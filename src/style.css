@@ -71,6 +71,11 @@ button svg {
   --table: #edecfb;
   --table-border: #dedcf5;
   --wash: #f6f8fc;
+  /* The colour the sticky header paints itself. It has to be opaque, so it
+     needs to match the page it sits on. The light themes paint --wash under a
+     soft overlay, so the wash is the right base for them; the dark theme
+     variants below paint something else and say so. */
+  --header-surface: var(--wash);
   min-height: 100svh;
   background:
     radial-gradient(ellipse at 35% 40%, #fff9 0, transparent 65%), var(--wash);
@@ -104,8 +109,14 @@ button svg {
      only way to reach either. In the flow they left with the first screenful
      and could not be got back without scrolling all the way up.
 
-     Keyed to --wash, which each theme redefines for light and dark, with a
-     blur so the pastel background variants still read underneath. */
+     Opaque, and that is the point. This was `color-mix(in srgb, var(--wash)
+     85%, transparent)` with a blur, so the pastel themes would read through
+     it — but 15% is plenty for a heading to show through, and a 14px blur
+     does not hide type that large. The lobby h1 scrolling under it came out
+     torn, with the line above ghosting inside the bar, which is what read as
+     the header clipping the page. Content has to pass cleanly behind the
+     chrome and come out intact. The themes still surround the header and
+     tint it through --header-surface; the surface itself is solid. */
   position: sticky;
   top: 0;
   z-index: 30;
@@ -118,8 +129,7 @@ button svg {
   justify-content: space-between;
   padding: 0 56px;
   border-bottom: 1px solid #e4e7ef;
-  background: color-mix(in srgb, var(--wash) 85%, transparent);
-  backdrop-filter: blur(14px);
+  background: var(--header-surface);
 }
 .brand {
   display: flex;
@@ -1706,6 +1716,7 @@ dialog {
   --soft: #243a50;
   --table: #213345;
   --table-border: #3b526c;
+  --header-surface: #141f2c;
   background-color: #141f2c;
   background-image: repeating-radial-gradient(
     ellipse at 0% 100%,
@@ -1719,6 +1730,7 @@ dialog {
   --soft: #49332d;
   --table: #392c2a;
   --table-border: #60463d;
+  --header-surface: #251c1c;
   background-color: #251c1c;
   background-image: linear-gradient(
     120deg,
@@ -1734,6 +1746,7 @@ dialog {
   --soft: #253e35;
   --table: #24382f;
   --table-border: #3d594d;
+  --header-surface: #17231f;
   background-color: #17231f;
   background-image:
     linear-gradient(#94d7b40b 1px, transparent 1px),
