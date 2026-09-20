@@ -67,10 +67,40 @@ try {
   await until(() => clients.every((c) => c.state.round === 2))
   assert(host.state.players.every((p) => !p.voted))
   assert.equal(host.state.consensus, null)
+  await delay(80)
+  send(guest, 'vote', { card: 'coffee' })
+  await until(() => host.state.players.find((p) => p.id === guest.id).voted)
+  assert.equal(host.state.discussion, null)
+  send(host, 'reveal')
+  await until(() =>
+    clients.every((c) => c.state.discussion?.status === 'offered'),
+  )
+  await delay(80)
+  send(guest, 'timer-start', { seconds: 600 })
+  await delay(100)
+  assert.equal(host.state.discussion.status, 'offered')
+  send(host, 'timer-start', { seconds: 600 })
+  await until(() =>
+    clients.every((c) => c.state.discussion?.status === 'running'),
+  )
+  assert(
+    clients.every(
+      (c) => c.state.discussion.endsAt === host.state.discussion.endsAt,
+    ),
+  )
+  assert.equal(host.state.discussion.duration, 600)
+  await delay(80)
+  send(host, 'timer-dismiss')
+  await until(() =>
+    clients.every((c) => c.state.discussion?.status === 'dismissed'),
+  )
+  await delay(80)
+  send(host, 'reset')
+  await until(() => clients.every((c) => c.state.discussion === null))
   host.ws.close()
   await until(() => guest.state.host === guest.id)
   console.log(
-    'PASS: 25 players, capacity rejection, private payloads, host-only reveal/reset, consensus, round clearing, host transfer.',
+    'PASS: 25 players, capacity rejection, private payloads, host-only reveal/reset, consensus, round clearing, host transfer, shared 10-minute timer, timer dismissal and reset.',
   )
 } finally {
   for (const c of clients) c.ws.close()

@@ -20,25 +20,35 @@ export interface Player {
   seat: number
   vote: Card | null
 }
+export interface Discussion {
+  status: 'offered' | 'running' | 'dismissed'
+  endsAt: number | null
+  duration: number
+}
 export interface Room {
   players: Player[]
   host: string
   revealed: boolean
   round: number
   consensus: Card | null
+  discussion: Discussion | null
 }
 export interface Snapshot {
   type: 'state'
+  serverNow: number
   you: string
   host: string
   revealed: boolean
   round: number
   consensus: Card | null
+  discussion: Discussion | null
   players: (Omit<Player, 'vote'> & { voted: boolean; vote?: Card | null })[]
 }
 export function view(room: Room, you: string): Snapshot {
   return {
     type: 'state',
+    serverNow: Date.now(),
+    discussion: room.discussion,
     you,
     host: room.host,
     revealed: room.revealed,
@@ -56,7 +66,13 @@ export function view(room: Room, you: string): Snapshot {
 export function act(
   room: Room,
   id: string,
-  message: { type?: unknown; card?: unknown; avatar?: unknown },
+  message: {
+    type?: unknown
+    card?: unknown
+    avatar?: unknown
+    seconds?: unknown
+  },
+  now = Date.now(),
 ): boolean {
   const player = room.players.find((p) => p.id === id)
   if (!player) return false
@@ -84,6 +100,9 @@ export function act(
     room.players.some((p) => p.vote !== null)
   ) {
     room.revealed = true
+    room.discussion = room.players.some((p) => p.vote === 'coffee')
+      ? { status: 'offered', endsAt: null, duration: 0 }
+      : null
     room.consensus =
       room.players.length >= 2 &&
       room.players.every(
@@ -93,7 +112,29 @@ export function act(
         : null
     return true
   }
+  if (
+    message.type === 'timer-start' &&
+    room.revealed &&
+    room.discussion?.status === 'offered' &&
+    typeof message.seconds === 'number' &&
+    Number.isInteger(message.seconds) &&
+    message.seconds >= 30 &&
+    message.seconds <= 600 &&
+    message.seconds % 30 === 0
+  ) {
+    room.discussion = {
+      status: 'running',
+      endsAt: now + Number(message.seconds) * 1000,
+      duration: Number(message.seconds),
+    }
+    return true
+  }
+  if (message.type === 'timer-dismiss' && room.revealed && room.discussion) {
+    room.discussion = { ...room.discussion, status: 'dismissed', endsAt: null }
+    return true
+  }
   if (message.type === 'reset') {
+    room.discussion = null
     room.revealed = false
     room.consensus = null
     room.round++

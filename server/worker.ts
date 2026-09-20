@@ -10,6 +10,7 @@ interface Attachment {
   host: string
   round: number
   revealed: boolean
+  discussion: Room['discussion']
   consensus: Room['consensus']
   last: number
 }
@@ -20,6 +21,7 @@ export class PokerRoom extends DurableObject<Env> {
     round: 1,
     revealed: false,
     consensus: null,
+    discussion: null,
   }
   sockets = new Map<WebSocket, Attachment>()
   constructor(ctx: DurableObjectState, env: Env) {
@@ -33,6 +35,7 @@ export class PokerRoom extends DurableObject<Env> {
         round: data.round,
         revealed: data.revealed,
         consensus: data.consensus,
+        discussion: data.discussion ?? null,
       })
     }
   }
@@ -75,6 +78,7 @@ export class PokerRoom extends DurableObject<Env> {
       round: this.room.round,
       revealed: this.room.revealed,
       consensus: this.room.consensus,
+      discussion: this.room.discussion,
       last: 0,
     })
     this.broadcast()
@@ -123,6 +127,7 @@ export class PokerRoom extends DurableObject<Env> {
         round: 1,
         revealed: false,
         consensus: null,
+        discussion: null,
       }
     this.broadcast()
   }
@@ -133,6 +138,7 @@ export class PokerRoom extends DurableObject<Env> {
         round: this.room.round,
         revealed: this.room.revealed,
         consensus: this.room.consensus,
+        discussion: this.room.discussion,
       })
       ws.serializeAttachment(data)
       try {

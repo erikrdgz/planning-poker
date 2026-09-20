@@ -10,6 +10,7 @@ function fixture(): Room {
     round: 1,
     revealed: false,
     consensus: null,
+    discussion: null,
   }
 }
 describe('private voting and host authority', () => {
@@ -69,4 +70,46 @@ describe('private voting and host authority', () => {
     expect(act(r, 'unknown', { type: 'vote', card: '3' })).toBe(false)
     expect(act(r, 'guest', { type: 'avatar', avatar: 99 })).toBe(false)
   })
+})
+
+describe('coffee discussion timer', () => {
+  it('offers only after revealing coffee and lets the host decline', () => {
+    const r = fixture()
+    act(r, 'guest', { type: 'vote', card: 'coffee' })
+    expect(view(r, 'host').discussion).toBe(null)
+    expect(act(r, 'host', { type: 'timer-start', seconds: 180 })).toBe(false)
+    act(r, 'host', { type: 'reveal' })
+    expect(r.discussion?.status).toBe('offered')
+    expect(act(r, 'guest', { type: 'timer-dismiss' })).toBe(false)
+    act(r, 'host', { type: 'timer-dismiss' })
+    expect(r.discussion?.status).toBe('dismissed')
+  })
+  it('shares a fixed deadline, rejects guest starts, and clears on reset', () => {
+    const r = fixture()
+    act(r, 'guest', { type: 'vote', card: 'coffee' })
+    act(r, 'host', { type: 'reveal' })
+    expect(act(r, 'guest', { type: 'timer-start', seconds: 180 })).toBe(false)
+    expect(act(r, 'host', { type: 'timer-start', seconds: 10 })).toBe(false)
+    act(r, 'host', { type: 'timer-start', seconds: 180 }, 1000)
+    expect(view(r, 'guest').discussion?.endsAt).toBe(181000)
+    expect(act(r, 'host', { type: 'timer-start', seconds: 300 })).toBe(false)
+    act(r, 'host', { type: 'reset' })
+    expect(r.discussion).toBe(null)
+  })
+})
+
+it('accepts slider boundaries and rejects invalid timer durations', () => {
+  for (const seconds of [30, 180, 330, 600]) {
+    const r = fixture()
+    act(r, 'guest', { type: 'vote', card: 'coffee' })
+    act(r, 'host', { type: 'reveal' })
+    expect(act(r, 'host', { type: 'timer-start', seconds }, 1000)).toBe(true)
+    expect(r.discussion?.endsAt).toBe(1000 + seconds * 1000)
+  }
+  for (const seconds of [0, 29, 31, 601, NaN, '180', null]) {
+    const r = fixture()
+    act(r, 'guest', { type: 'vote', card: 'coffee' })
+    act(r, 'host', { type: 'reveal' })
+    expect(act(r, 'host', { type: 'timer-start', seconds })).toBe(false)
+  }
 })

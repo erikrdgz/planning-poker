@@ -39,6 +39,9 @@ function App() {
   const [connection, setConnection] = useState<
     'idle' | 'connecting' | 'connected' | 'error'
   >('idle')
+  const [timerSeconds, setTimerSeconds] = useState(180)
+  const [now, setNow] = useState(Date.now())
+  const serverOffset = useRef(0)
   const [error, setError] = useState('')
   const [theme, setTheme] = useState('daylight')
   const [customize, setCustomize] = useState(false)
@@ -55,6 +58,19 @@ function App() {
   const host = room?.host === room?.you && !!room
   const voted = room?.players.filter((p) => p.voted).length ?? 0
   const chosen = me?.vote ?? null
+  const discussion = room?.discussion
+  const remaining = Math.max(
+    0,
+    Math.ceil(((discussion?.endsAt ?? 0) - now) / 1000),
+  )
+  useEffect(() => {
+    if (discussion?.status !== 'running') return
+    const tick = setInterval(
+      () => setNow(Date.now() + serverOffset.current),
+      250,
+    )
+    return () => clearInterval(tick)
+  }, [discussion?.status, discussion?.endsAt])
   useEffect(() => {
     if (!code) return
     let active = true
@@ -70,6 +86,8 @@ function App() {
       if (!active) return
       const message = JSON.parse(e.data)
       if (message.type === 'state') {
+        serverOffset.current = message.serverNow - Date.now()
+        setNow(Date.now() + serverOffset.current)
         setRoom(message)
         setConnection('connected')
         setError('')
@@ -449,6 +467,117 @@ function App() {
                 </div>
               </aside>
             </div>
+            {discussion && discussion.status !== 'dismissed' && (
+              <section className="coffee-break" aria-label="Coffee discussion">
+                <div className="coffee-stamp">
+                  <Coffee size={32} />
+                  <span>
+                    COFFEE
+                    <br />& CLARITY
+                  </span>
+                </div>
+                <div className="coffee-copy">
+                  <span className="eyebrow">A PAUSE WITH PURPOSE</span>
+                  <h2>
+                    {discussion.status === 'offered'
+                      ? 'Someone’s got a question.'
+                      : remaining > 0
+                        ? 'Let it brew.'
+                        : 'Time’s up. Where did we land?'}
+                  </h2>
+                  <p>
+                    {discussion.status === 'offered'
+                      ? 'A little space to unpack the unknowns. Timebox it, or let the conversation flow.'
+                      : remaining > 0
+                        ? 'Explore the uncertainty. The estimate can wait.'
+                        : 'Wrap up the thought, then give the next estimate a go.'}
+                  </p>
+                </div>
+                {discussion.status === 'running' && (
+                  <div
+                    className="brew-clock"
+                    role="timer"
+                    aria-label="Discussion time remaining"
+                  >
+                    <strong>
+                      {Math.floor(remaining / 60)}
+                      <span>:</span>
+                      {String(remaining % 60).padStart(2, '0')}
+                    </strong>
+                    <div className="brew-progress">
+                      <i
+                        style={{
+                          transform: `scaleX(${remaining / discussion.duration})`,
+                        }}
+                      />
+                    </div>
+                  </div>
+                )}
+                <div className="coffee-actions">
+                  {host ? (
+                    discussion.status === 'offered' ? (
+                      <>
+                        <div className="timer-picker">
+                          <label htmlFor="discussion-duration">
+                            Time to talk{' '}
+                            <output>
+                              {Math.floor(timerSeconds / 60)}:
+                              {String(timerSeconds % 60).padStart(2, '0')}
+                            </output>
+                          </label>
+                          <input
+                            id="discussion-duration"
+                            type="range"
+                            min="30"
+                            max="600"
+                            step="30"
+                            value={timerSeconds}
+                            aria-valuetext={`${Math.floor(timerSeconds / 60)} minutes ${timerSeconds % 60} seconds`}
+                            onChange={(e) =>
+                              setTimerSeconds(Number(e.target.value))
+                            }
+                          />
+                          <div className="range-labels">
+                            <span>30 sec</span>
+                            <span>10 min</span>
+                          </div>
+                          <button
+                            className="primary"
+                            disabled={connection !== 'connected'}
+                            onClick={() =>
+                              send('timer-start', { seconds: timerSeconds })
+                            }
+                          >
+                            Start timer
+                          </button>
+                        </div>
+                        <button
+                          className="text-button"
+                          disabled={connection !== 'connected'}
+                          onClick={() => send('timer-dismiss')}
+                        >
+                          Talk without a timer
+                        </button>
+                      </>
+                    ) : (
+                      <button
+                        className="text-button"
+                        disabled={connection !== 'connected'}
+                        onClick={() => send('timer-dismiss')}
+                      >
+                        {remaining > 0 ? 'End timer' : 'Dismiss timer'}
+                      </button>
+                    )
+                  ) : (
+                    <span>
+                      {discussion.status === 'offered'
+                        ? 'Your host can start or skip the timer.'
+                        : 'A shared pause for everyone.'}
+                    </span>
+                  )}
+                </div>
+              </section>
+            )}
             <section className="deck-panel">
               <div className="deck-heading">
                 <div>
@@ -474,7 +603,13 @@ function App() {
                   <button
                     key={value}
                     className={`estimate-card ${chosen === value ? 'selected' : ''} ${value === 'coffee' ? 'coffee-card' : ''}`}
-                    style={{ '--i': index } as React.CSSProperties}
+                    style={
+                      {
+                        '--i': index,
+                        '--tilt': `${(index - 3.5) * 1.6}deg`,
+                        '--arc': `${Math.pow(index - 3.5, 2) * 1.5}px`,
+                      } as React.CSSProperties
+                    }
                     aria-label={
                       value === 'coffee'
                         ? 'Coffee — let’s discuss'

@@ -28,6 +28,8 @@ node scripts/test-rooms.mjs # with the local room server running
 - Each player receives their own vote; everyone else's value is omitted from the server response until the host reveals.
 - Only the host can reveal or reset. A new round clears every vote.
 - Matching votes from every participant (at least two) trigger confetti for 1.9 seconds. Reduced-motion preferences suppress it.
+- Revealing any coffee card offers an optional shared discussion timer. The host chooses 30 seconds to 10 minutes with a slider, or declines. Everyone sees the same deadline; the host can stop early, and the next round clears it.
+- A gently fanned hand of cards lifts the current selection, with a compact two-row layout on phones.
 - Twelve emoji avatars and four personal backgrounds. Anonymous player numbers differentiate matching avatars.
 - If the host leaves, hosting transfers to the next connected player. A reconnect is a new participant if its previous connection has already closed. Active duplicate connections with the same private connection token replace the old connection.
 - Rooms end when everyone disconnects. A new host must create a new room. Joining mid-reveal shows the current result; that participant votes in the next round.
