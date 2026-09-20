@@ -16,6 +16,21 @@
      from the root element and only falls back to body when the root leaves
      it auto. */
   overscroll-behavior-y: none;
+
+  /* The bar's height, and the room a heading gets below it. They live here
+     rather than on .app because scroll-padding-top is set on the scroll
+     container, which is the root element. */
+  --header-h: 104px;
+  --header-gap: 40px;
+
+  /* The bar is fixed, so the top of the viewport is covered. Without this the
+     browser does not know that, and anything that scrolls an element into
+     view — an anchor, or the browser restoring a position — aligns it with
+     the top of the viewport, which is behind the bar.
+
+     Padding on .app cannot do this job: padding positions content at rest,
+     scroll-padding governs where the browser decides to scroll to. */
+  scroll-padding-top: calc(var(--header-h) + var(--header-gap));
 }
 * {
   box-sizing: border-box;
@@ -87,16 +102,8 @@ button svg {
      soft overlay, so the wash is the right base for them; the dark theme
      variants below paint something else and say so. */
   --header-surface: var(--wash);
-  /* The header's height, and the room the page's own heading gets below it.
-     Reserving the height alone left the first line 24px under an opaque bar,
-     which is fine standing still at zero and fails everywhere else: Chrome's
-     toolbar animates as the reader comes back up and does not reliably leave
-     the document at zero, so landing a few tens of pixels down put the
-     heading behind the bar. Reserving a gap as well as the height means the
-     heading stays visible through that, and there is nothing to pull down
-     for — which is what was handing the gesture to pull-to-refresh. */
-  --header-h: 104px;
-  --header-gap: 40px;
+  /* Reserves the bar's height and the gap below it. The two tokens are on
+     :root so scroll-padding-top can share them. */
   padding-top: calc(var(--header-h) + var(--header-gap));
   min-height: 100svh;
   background:
@@ -1029,11 +1036,10 @@ dialog h3 {
   }
 }
 @media (max-width: 800px) {
-  .app {
+  :root {
     --header-h: 84px;
   }
   .header {
-    height: 84px;
     padding: 0 22px;
   }
   .no-accounts {
