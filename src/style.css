@@ -2562,3 +2562,113 @@ dialog {
     font-size: 23px;
   }
 }
+/* A quiet ticket action, with room for the editor to unfold. */
+.ticket-add {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  border: 0;
+  font-weight: 400;
+  font-size: 12px;
+  color: #85839b;
+  padding: 5px 7px;
+  animation: ticket-content-in 0.22s ease both;
+}
+.dark .ticket-add {
+  color: #a3abc2;
+}
+.ticket-add:hover:not(:disabled) {
+  color: var(--accent);
+  background: var(--soft);
+  transform: none;
+}
+.ticket-motion {
+  display: grid;
+  grid-template-rows: 0fr;
+  opacity: 0;
+  transform: translateY(-8px);
+  transition:
+    grid-template-rows 0.28s cubic-bezier(0.2, 0.8, 0.2, 1),
+    opacity 0.2s ease,
+    transform 0.28s ease;
+}
+.ticket-motion.is-open {
+  grid-template-rows: 1fr;
+  opacity: 1;
+  transform: translateY(0);
+}
+.ticket-motion-inner {
+  min-height: 0;
+  overflow: hidden;
+}
+.ticket-editor,
+.ticket-summary {
+  animation: ticket-content-in 0.24s ease both;
+}
+.ticket-editor.is-closing {
+  animation: ticket-content-out 0.18s ease both;
+  pointer-events: none;
+}
+@keyframes ticket-content-in {
+  from {
+    opacity: 0;
+    transform: translateY(7px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@keyframes ticket-content-out {
+  from {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+}
+/* Playing a card leaves its place in the hand until it is returned. */
+.estimate-card:not(.selected) {
+  animation: card-deal-in 0.36s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.estimate-card.selected {
+  animation: card-play-away 0.48s cubic-bezier(0.22, 0.7, 0.3, 1) both;
+  opacity: 0;
+  pointer-events: none;
+  z-index: 20;
+}
+@keyframes card-play-away {
+  0% {
+    opacity: 1;
+    transform: translateY(calc(var(--arc) - 12px)) rotate(var(--tilt)) scale(1);
+  }
+  35% {
+    opacity: 1;
+    transform: translateY(-40px) rotate(0deg) scale(1.04);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-110px) rotate(0deg) scale(0.82);
+  }
+}
+@keyframes card-deal-in {
+  from {
+    opacity: 0;
+    transform: translateY(calc(var(--arc) + 22px)) rotate(var(--tilt))
+      scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(var(--arc)) rotate(var(--tilt)) scale(1);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .estimate-card.selected {
+    opacity: 0;
+  }
+  .ticket-editor.is-closing {
+    opacity: 0;
+  }
+}

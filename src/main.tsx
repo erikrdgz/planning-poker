@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react'
 import { createRoot } from 'react-dom/client'
 import {
   Timer,
+  Plus,
   ArrowUpRight,
   Check,
   ChevronRight,
@@ -39,6 +40,10 @@ function App() {
     () => new URLSearchParams(location.search).get('room') ?? '',
   )
   const [editingTicket, setEditingTicket] = useState(false)
+  const [ticketClosing, setTicketClosing] = useState(false)
+  const ticketExitTimer = useRef<ReturnType<typeof setTimeout> | undefined>(
+    undefined,
+  )
   const [ticketTitle, setTicketTitle] = useState('')
   const [ticketLink, setTicketLink] = useState('')
   const [ticketError, setTicketError] = useState('')
@@ -159,7 +164,26 @@ function App() {
     }
   }, [room?.celebrationAt, code])
   useEffect(() => () => clearTimeout(copyTimer.current), [])
+  useEffect(() => () => clearTimeout(ticketExitTimer.current), [])
+  useEffect(() => {
+    clearTimeout(ticketExitTimer.current)
+    setEditingTicket(false)
+    setTicketClosing(false)
+  }, [code, room?.round, host])
+  function closeTicket() {
+    setTicketClosing(true)
+    clearTimeout(ticketExitTimer.current)
+    ticketExitTimer.current = setTimeout(
+      () => {
+        setEditingTicket(false)
+        setTicketClosing(false)
+      },
+      window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : 180,
+    )
+  }
   function editTicket() {
+    clearTimeout(ticketExitTimer.current)
+    setTicketClosing(false)
     setTicketTitle(room?.ticket?.title ?? '')
     setTicketLink(room?.ticket?.url ?? '')
     setTicketError('')
@@ -393,98 +417,108 @@ function App() {
                 </button>
               </div>
             </div>
-            {(room?.ticket?.title ||
-              room?.ticket?.url ||
-              (host && editingTicket)) && (
-              <section
-                className="ticket-panel"
-                aria-label="Current Jira ticket"
-              >
-                {host && editingTicket ? (
-                  <form
-                    className="ticket-editor"
-                    onSubmit={(e) => {
-                      e.preventDefault()
-                      const url = ticketUrl(ticketLink)
-                      if (url === null) {
-                        setTicketError(
-                          'Enter a full https:// or http:// Jira ticket link.',
-                        )
-                        return
-                      }
-                      send('ticket-update', { title: ticketTitle, url })
-                      setEditingTicket(false)
-                      setTicketError('')
-                    }}
-                  >
-                    <input
-                      autoFocus
-                      aria-label="Ticket title"
-                      maxLength={160}
-                      value={ticketTitle}
-                      onChange={(e) => setTicketTitle(e.target.value)}
-                      placeholder="Ticket title"
-                    />
-                    <input
-                      aria-label="Jira ticket link"
-                      type="url"
-                      maxLength={2048}
-                      value={ticketLink}
-                      onChange={(e) => setTicketLink(e.target.value)}
-                      placeholder="Jira ticket link"
-                    />
-                    <button
-                      className="primary"
-                      disabled={connection !== 'connected'}
-                      type="submit"
+            <div
+              className={`ticket-motion ${room?.ticket?.title || room?.ticket?.url || (host && editingTicket) ? 'is-open' : ''}`}
+              inert={
+                !(
+                  room?.ticket?.title ||
+                  room?.ticket?.url ||
+                  (host && editingTicket)
+                )
+              }
+            >
+              <div className="ticket-motion-inner">
+                <section
+                  className="ticket-panel"
+                  aria-label="Current Jira ticket"
+                >
+                  {host && editingTicket ? (
+                    <form
+                      className={`ticket-editor ${ticketClosing ? 'is-closing' : ''}`}
+                      inert={ticketClosing}
+                      onSubmit={(e) => {
+                        e.preventDefault()
+                        const url = ticketUrl(ticketLink)
+                        if (url === null) {
+                          setTicketError(
+                            'Enter a full https:// or http:// Jira ticket link.',
+                          )
+                          return
+                        }
+                        send('ticket-update', { title: ticketTitle, url })
+                        closeTicket()
+                        setTicketError('')
+                      }}
                     >
-                      Save ticket
-                    </button>
-                    <button
-                      className="ticket-cancel"
-                      type="button"
-                      aria-label="Cancel ticket editing"
-                      onClick={() => setEditingTicket(false)}
-                    >
-                      <X size={17} />
-                    </button>
-                    {ticketError && <p role="alert">{ticketError}</p>}
-                  </form>
-                ) : (
-                  <div className="ticket-summary">
-                    {room?.ticket?.title && <h2>{room.ticket.title}</h2>}
-                    <div className="ticket-actions">
-                      {room?.ticket?.url && (
-                        <a
-                          className="jira-link"
-                          href={room.ticket.url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                        >
-                          <img
-                            src={`${import.meta.env.BASE_URL}jira.svg`}
-                            width="16"
-                            height="16"
-                            alt=""
-                          />
-                          Open on Jira
-                          <ArrowUpRight size={15} />
-                        </a>
-                      )}
-                      {host && (
-                        <button
-                          className="ticket-edit"
-                          disabled={connection !== 'connected'}
-                          onClick={editTicket}
-                        >
-                          Edit ticket
-                        </button>
-                      )}
+                      <input
+                        autoFocus
+                        aria-label="Ticket title"
+                        maxLength={160}
+                        value={ticketTitle}
+                        onChange={(e) => setTicketTitle(e.target.value)}
+                        placeholder="Ticket title"
+                      />
+                      <input
+                        aria-label="Jira ticket link"
+                        type="url"
+                        maxLength={2048}
+                        value={ticketLink}
+                        onChange={(e) => setTicketLink(e.target.value)}
+                        placeholder="Jira ticket link"
+                      />
+                      <button
+                        className="primary"
+                        disabled={connection !== 'connected'}
+                        type="submit"
+                      >
+                        Save ticket
+                      </button>
+                      <button
+                        className="ticket-cancel"
+                        type="button"
+                        aria-label="Cancel ticket editing"
+                        onClick={closeTicket}
+                      >
+                        <X size={17} />
+                      </button>
+                      {ticketError && <p role="alert">{ticketError}</p>}
+                    </form>
+                  ) : (
+                    <div className="ticket-summary">
+                      {room?.ticket?.title && <h2>{room.ticket.title}</h2>}
+                      <div className="ticket-actions">
+                        {room?.ticket?.url && (
+                          <a
+                            className="jira-link"
+                            href={room.ticket.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                          >
+                            <img
+                              src={`${import.meta.env.BASE_URL}jira.svg`}
+                              width="16"
+                              height="16"
+                              alt=""
+                            />
+                            Open on Jira
+                            <ArrowUpRight size={15} />
+                          </a>
+                        )}
+                        {host && (
+                          <button
+                            className="ticket-edit"
+                            disabled={connection !== 'connected'}
+                            onClick={editTicket}
+                          >
+                            Edit ticket
+                          </button>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                )}
-              </section>
-            )}
+                  )}
+                </section>
+              </div>
+            </div>
             <div className="workspace-grid">
               <section className="table-panel">
                 <div className="table-toolbar">
@@ -501,7 +535,7 @@ function App() {
                           disabled={connection !== 'connected'}
                           onClick={editTicket}
                         >
-                          + Add ticket
+                          <Plus size={13} /> Add ticket
                         </button>
                       )}
                   </div>
@@ -789,9 +823,9 @@ function App() {
                     {room?.revealed
                       ? 'Talk it through, then start fresh.'
                       : chosen === 'coffee'
-                        ? 'Coffee selected. Let’s make space for discussion.'
+                        ? 'Coffee played. Choose another card to change your vote.'
                         : chosen
-                          ? `${chosen} selected. You can change your mind until reveal.`
+                          ? `${chosen} played. Choose another card to change your vote.`
                           : 'Go with your instinct. You can change it until the reveal.'}
                   </p>
                 </div>
@@ -800,7 +834,7 @@ function App() {
               <div className="deck" aria-label="Choose an estimate">
                 {CARDS.map((value, index) => (
                   <button
-                    key={value}
+                    key={`${room?.round}-${value}-${chosen === value}`}
                     className={`estimate-card ${chosen === value ? 'selected' : ''} ${value === 'coffee' ? 'coffee-card' : ''}`}
                     style={
                       {
@@ -815,7 +849,11 @@ function App() {
                         : `${value} story points`
                     }
                     aria-pressed={chosen === value}
-                    disabled={room?.revealed || connection !== 'connected'}
+                    disabled={
+                      chosen === value ||
+                      room?.revealed ||
+                      connection !== 'connected'
+                    }
                     onClick={() => send('vote', { card: value })}
                   >
                     <span className="card-corner">
