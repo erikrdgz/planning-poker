@@ -168,18 +168,6 @@ button svg {
   padding: 0 56px;
   border-bottom: 1px solid #e4e7ef;
   background: var(--header-surface);
-  /* Leaves on the way down, returns on the way up — see useAutoHideHeader.
-     Transform rather than top so it never reflows the page under it. */
-  transition: transform 0.25s ease;
-  will-change: transform;
-}
-.header[data-hidden='true'] {
-  transform: translateY(-100%);
-}
-@media (prefers-reduced-motion: reduce) {
-  .header {
-    transition: none;
-  }
 }
 .brand {
   display: flex;
