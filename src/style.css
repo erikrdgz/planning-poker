@@ -878,19 +878,44 @@ dialog h3 {
 .confetti i {
   position: absolute;
   left: var(--x);
-  top: -20px;
-  width: 8px;
-  height: 13px;
+  top: var(--y);
+  width: 7px;
+  height: 11px;
+  border-radius: 2px;
   background: var(--color);
-  animation: confetti 1.65s var(--delay) ease-in both;
+  animation: confetti-burst 1.45s var(--delay) linear both;
 }
-@keyframes confetti {
-  from {
-    transform: translateY(-20px) rotate(0);
+.confetti i:nth-child(3n) {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+}
+@keyframes confetti-burst {
+  0% {
+    transform: translate(-50%, -50%) scale(0.25);
+    opacity: 0;
+  }
+  4% {
     opacity: 1;
   }
-  to {
-    transform: translateY(100vh) rotate(var(--rotation));
+  20% {
+    transform: translate(calc(var(--dx) * 0.55), calc(var(--dy) * 0.55))
+      rotate(calc(var(--rotation) * 0.2)) scale(1);
+    opacity: 1;
+  }
+  45% {
+    transform: translate(calc(var(--dx) * 0.85), calc(var(--dy) * 0.85 + 3vmin))
+      rotate(calc(var(--rotation) * 0.5));
+    opacity: 1;
+  }
+  70% {
+    transform: translate(var(--dx), calc(var(--dy) + 10vmin))
+      rotate(calc(var(--rotation) * 0.8));
+    opacity: 0.8;
+  }
+  100% {
+    transform: translate(calc(var(--dx) * 1.08), calc(var(--dy) + 25vmin))
+      rotate(var(--rotation)) scale(0.5);
     opacity: 0;
   }
 }
@@ -1521,4 +1546,553 @@ dialog {
   .coffee-copy p {
     font-size: 13px;
   }
+}
+/* Coordinated scenes: surface treatment and palette change together. */
+.app {
+  background-attachment: fixed;
+}
+.app.theme-sky {
+  background-color: #edf6fb;
+  background-image:
+    repeating-radial-gradient(
+      ellipse at 0% 100%,
+      transparent 0 42px,
+      #679cc214 43px 44px,
+      transparent 45px 76px
+    ),
+    linear-gradient(135deg, #eff7fc, #e6f1fb);
+  --accent: #326797;
+  --soft: #e7f1fb;
+  --table: #e2f2fc;
+  --table-border: #cbe5f5;
+}
+.app.theme-peach {
+  background-color: #fff6ef;
+  background-image:
+    linear-gradient(
+      120deg,
+      transparent 0 23%,
+      #f7dfb433 23% 36%,
+      transparent 36% 59%,
+      #f7dfb433 59% 72%,
+      transparent 72%
+    ),
+    radial-gradient(ellipse at top right, #ffdfa3aa, transparent 60%);
+  --accent: #a54e31;
+  --soft: #ffebdf;
+  --table: #fff0e6;
+  --table-border: #f4dbc9;
+}
+.app.theme-mint {
+  background-color: #f1f8f4;
+  background-image:
+    linear-gradient(#4a8b6810 1px, transparent 1px),
+    linear-gradient(90deg, #4a8b6810 1px, transparent 1px);
+  background-size: 32px 32px;
+  --accent: #377661;
+  --soft: #e1f2e9;
+  --table: #e5f5ee;
+  --table-border: #cfe9db;
+}
+.room-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.party-button {
+  color: var(--accent);
+}
+.party-button:disabled {
+  opacity: 0.55;
+}
+.appearance-setting {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  border-top: 1px solid #e8e8f0;
+  margin-top: 24px;
+  padding-top: 20px;
+}
+.appearance-setting h3 {
+  margin: 0;
+}
+.appearance-setting p {
+  margin: 7px 0 0;
+  font-size: 13px;
+}
+.mode-switch {
+  padding: 4px;
+  width: 48px;
+  height: 28px;
+  border-radius: 30px;
+  background: #d8dbe6;
+  flex-shrink: 0;
+  justify-content: flex-start;
+}
+.mode-switch span {
+  display: block;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: white;
+  box-shadow: 0 1px 4px #0002;
+  transition: transform 0.2s;
+}
+.mode-switch[aria-checked='true'] {
+  background: var(--accent);
+}
+.mode-switch[aria-checked='true'] span {
+  transform: translateX(20px);
+}
+.mode-switch:hover:not(:disabled) {
+  transform: none;
+}
+.scene-swatch {
+  background-color: var(--swatch);
+}
+.swatch-sky {
+  background-image: repeating-radial-gradient(
+    ellipse at bottom left,
+    transparent 0 8px,
+    #5388af40 9px 10px,
+    transparent 11px 19px
+  );
+}
+.swatch-peach {
+  background-image: linear-gradient(
+    120deg,
+    transparent 0 25%,
+    #fff9 25% 40%,
+    transparent 40% 65%,
+    #fff9 65% 80%,
+    transparent 80%
+  );
+}
+.swatch-mint {
+  background-image:
+    linear-gradient(#56896c30 1px, transparent 1px),
+    linear-gradient(90deg, #56896c30 1px, transparent 1px);
+  background-size: 10px 10px;
+}
+.app.dark {
+  color-scheme: dark;
+  --wash: #161925;
+  --accent: #b3adff;
+  --soft: #303047;
+  --table: #28283d;
+  --table-border: #41415c;
+  color: #e8eaf4;
+  background: #161925;
+}
+.app.dark.theme-sky {
+  --accent: #92caf5;
+  --soft: #243a50;
+  --table: #213345;
+  --table-border: #3b526c;
+  background-color: #141f2c;
+  background-image: repeating-radial-gradient(
+    ellipse at 0% 100%,
+    transparent 0 42px,
+    #80a8c515 43px 44px,
+    transparent 45px 76px
+  );
+}
+.app.dark.theme-peach {
+  --accent: #ffc095;
+  --soft: #49332d;
+  --table: #392c2a;
+  --table-border: #60463d;
+  background-color: #251c1c;
+  background-image: linear-gradient(
+    120deg,
+    transparent 0 23%,
+    #d99f7110 23% 36%,
+    transparent 36% 59%,
+    #d99f7110 59% 72%,
+    transparent 72%
+  );
+}
+.app.dark.theme-mint {
+  --accent: #94d7b4;
+  --soft: #253e35;
+  --table: #24382f;
+  --table-border: #3d594d;
+  background-color: #17231f;
+  background-image:
+    linear-gradient(#94d7b40b 1px, transparent 1px),
+    linear-gradient(90deg, #94d7b40b 1px, transparent 1px);
+  background-size: 32px 32px;
+}
+.dark .header,
+.dark .appearance-setting {
+  border-color: #ffffff20;
+}
+.dark .table-panel,
+.dark .team-panel,
+.dark .deck-panel {
+  background: #1e2232e8;
+  border-color: #ffffff20;
+}
+.dark .primary,
+.dark .coffee-actions .primary {
+  color: #1d2330;
+  background: var(--accent);
+}
+.dark .secondary,
+.dark .icon-button {
+  background: #272c3d;
+  border-color: #4c5268;
+  color: #e1e5f3;
+}
+.dark .poker-table {
+  box-shadow:
+    inset 0 3px 14px #ffffff03,
+    0 15px 35px #0001;
+}
+.dark .room-code,
+.dark .team-title > span {
+  background: #33384b;
+  color: #d1d5e6;
+}
+.dark .brand-caption,
+.dark .no-accounts,
+.dark .eyebrow,
+.dark .round-pill,
+.dark .privacy-label,
+.dark .poker-table p,
+.dark .waiting-label,
+.dark .team-intro,
+.dark .team-person div > span,
+.dark .customize-link,
+.dark .deck-heading p,
+.dark .deck-tag,
+.dark footer,
+.dark .lobby-copy > p,
+.dark .lobby-notes,
+.dark .join-form label,
+.dark .preview-avatars p,
+.dark .orbit-label {
+  color: #abb3ca;
+}
+.dark .team-tip {
+  background: #292d3f;
+  color: #bbc1d5;
+}
+.dark .team-tip p {
+  color: #bbc1d5;
+}
+.dark .customize-link {
+  border-color: #ffffff20;
+}
+.dark .mini-card {
+  background: #282d40;
+  border-color: #626a82;
+  color: #c2c8dc;
+}
+.dark .mini-card.is-voted {
+  background: var(--accent);
+  color: #222637;
+}
+.dark .mini-card.is-revealed {
+  background: var(--soft);
+  color: var(--accent);
+  border-color: var(--table-border);
+}
+.dark .seat-avatar {
+  border-color: #202435;
+  background: var(--soft);
+}
+.dark .seat-name small {
+  color: #b3b9ce;
+}
+.dark .estimate-card {
+  background: #2c3145;
+  border-color: #5b637d;
+  color: #edf0ff;
+  box-shadow: 2px 4px 7px #0003;
+}
+.dark .estimate-card.selected {
+  background: var(--accent);
+  color: #1d2330;
+  border-color: var(--accent);
+}
+.dark .coffee-card {
+  background: #45372e;
+  border-color: #8e725b;
+  color: #f7d0a6;
+}
+.dark .card-bottom {
+  opacity: 0.85;
+}
+.dark .join-form {
+  color: #dde2f1;
+}
+.dark .join-form form {
+  border-color: #677086;
+}
+.dark .join-form input {
+  color: #edf0ff;
+}
+.dark .join-form input::placeholder {
+  color: #a1abc4;
+}
+.dark .sample-card {
+  background: #30354b;
+  border-color: #535c78;
+  color: #dde2f5;
+}
+.dark .sample-two {
+  background: var(--accent);
+  color: #24283b;
+}
+.dark .sample-three {
+  background: #48372c;
+  color: #e7c099;
+}
+.dark .preview-avatars > span {
+  background: #30364a;
+}
+.dark dialog {
+  background: #24293b;
+  color: #edf0ff;
+  border-color: #58627d;
+}
+.dark dialog p {
+  color: #b8bfd4;
+}
+.dark .avatar-picker button {
+  background: #343a50;
+  border-color: transparent;
+}
+.dark .avatar-picker button.active {
+  border-color: var(--accent);
+  background: var(--soft);
+}
+.dark .background-picker button {
+  color: #d0d6eb;
+}
+.dark .background-picker button.active > span {
+  border-color: var(--accent);
+  color: #252941;
+}
+.dark .scene-swatch {
+  filter: brightness(0.72);
+}
+.dark .mode-switch[aria-checked='true'] {
+  background: var(--accent);
+}
+.dark .coffee-break {
+  background: #302b2b;
+  border-color: #6e5948;
+}
+.dark .coffee-copy h2,
+.dark .brew-clock strong {
+  color: #f4dcc3;
+}
+.dark .coffee-copy p,
+.dark .coffee-copy .eyebrow,
+.dark .coffee-actions > span,
+.dark .text-button,
+.dark .timer-picker label,
+.dark .range-labels {
+  color: #d9bea4;
+}
+.dark .coffee-stamp {
+  border-color: #b38c69;
+  color: #e0b68d;
+}
+.dark .timer-picker input {
+  accent-color: #e0b68d;
+}
+.dark .error-message {
+  background: #482d2e;
+  color: #ffd2c5;
+  border-color: #996455;
+}
+@media (max-width: 600px) {
+  .room-actions {
+    gap: 8px;
+  }
+  .party-button span {
+    display: none;
+  }
+  .room-heading .room-actions .secondary {
+    font-size: 0;
+    width: 40px;
+    height: 40px;
+    padding: 0;
+    gap: 0;
+  }
+}
+/* Motion describes state: arrive, commit, reveal, acknowledge. */
+.seat {
+  animation: seat-arrive 0.35s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+.seat-avatar {
+  transition: transform 0.25s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.seat:hover .seat-avatar {
+  transform: translateY(-3px) rotate(-7deg);
+}
+.mini-card.is-voted {
+  animation: vote-commit 0.32s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+.mini-card.is-revealed {
+  animation: card-turn 0.48s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  backface-visibility: hidden;
+}
+.vote-progress span {
+  transition:
+    background 0.25s,
+    transform 0.25s;
+}
+.vote-progress .filled {
+  animation: vote-dot 0.3s ease;
+}
+.person-status.has-vote {
+  animation: vote-dot 0.3s ease;
+}
+.round-change {
+  animation: round-arrive 0.4s ease;
+}
+.copy-confirmed svg {
+  animation: vote-dot 0.3s ease;
+}
+.party-button:hover:not(:disabled) svg {
+  animation: party-wiggle 0.4s ease;
+}
+.avatar-picker button {
+  transition:
+    transform 0.2s,
+    background 0.2s,
+    border-color 0.2s;
+}
+.avatar-picker button:hover {
+  transform: translateY(-3px) rotate(-5deg);
+}
+.avatar-picker button.active {
+  animation: vote-dot 0.25s ease;
+}
+.background-picker button > span {
+  transition:
+    transform 0.25s,
+    box-shadow 0.25s,
+    border-color 0.25s;
+}
+.background-picker button:hover > span {
+  transform: translateY(-3px);
+  box-shadow: 0 5px 14px #25255220;
+}
+.background-picker button.active > span {
+  box-shadow: 0 0 0 3px var(--soft);
+}
+dialog[open] {
+  animation: settings-enter 0.22s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+dialog[open]::backdrop {
+  animation: backdrop-enter 0.2s ease;
+}
+.primary:active:not(:disabled),
+.secondary:active:not(:disabled) {
+  transform: scale(0.97);
+}
+.table-panel,
+.team-panel,
+.deck-panel,
+.poker-table {
+  transition:
+    background-color 0.3s,
+    border-color 0.3s,
+    color 0.3s;
+}
+.estimate-card:active:not(:disabled) {
+  transform: translateY(calc(var(--arc) - 10px)) rotate(0) scale(0.98);
+}
+@keyframes seat-arrive {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+@keyframes vote-commit {
+  0% {
+    transform: translateY(-8px) rotate(-6deg);
+    opacity: 0.5;
+  }
+  65% {
+    transform: translateY(2px) rotate(2deg);
+  }
+  100% {
+    transform: translateY(0) rotate(0);
+    opacity: 1;
+  }
+}
+@keyframes card-turn {
+  0% {
+    transform: perspective(500px) rotateY(90deg) scale(0.96);
+  }
+  100% {
+    transform: perspective(500px) rotateY(0) scale(1);
+  }
+}
+@keyframes vote-dot {
+  0% {
+    transform: scale(0.65);
+  }
+  60% {
+    transform: scale(1.18);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+@keyframes round-arrive {
+  from {
+    opacity: 0;
+    transform: translateY(5px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@keyframes party-wiggle {
+  25% {
+    transform: rotate(-15deg);
+  }
+  75% {
+    transform: rotate(12deg);
+  }
+}
+@keyframes settings-enter {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+@keyframes backdrop-enter {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+dialog {
+  border-radius: 22px;
+}
+.avatar-picker button {
+  border-radius: 13px;
+}
+.background-picker button > span {
+  border-radius: 9px;
 }

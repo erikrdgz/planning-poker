@@ -97,10 +97,19 @@ try {
   await delay(80)
   send(host, 'reset')
   await until(() => clients.every((c) => c.state.discussion === null))
+  await delay(80)
+  send(guest, 'celebrate')
+  await delay(100)
+  assert.equal(host.state.celebrationAt, 0)
+  send(host, 'celebrate')
+  await until(() => clients.every((c) => c.state.celebrationAt > 0))
+  assert(
+    clients.every((c) => c.state.celebrationAt === host.state.celebrationAt),
+  )
   host.ws.close()
   await until(() => guest.state.host === guest.id)
   console.log(
-    'PASS: 25 players, capacity rejection, private payloads, host-only reveal/reset, consensus, round clearing, host transfer, shared 10-minute timer, timer dismissal and reset.',
+    'PASS: 25 players, capacity rejection, private payloads, host-only reveal/reset, consensus, round clearing, host transfer, shared 10-minute timer, timer dismissal and reset, host-only shared confetti.',
   )
 } finally {
   for (const c of clients) c.ws.close()

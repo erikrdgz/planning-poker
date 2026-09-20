@@ -31,6 +31,7 @@ export interface Room {
   revealed: boolean
   round: number
   consensus: Card | null
+  celebrationAt: number
   discussion: Discussion | null
 }
 export interface Snapshot {
@@ -41,6 +42,7 @@ export interface Snapshot {
   revealed: boolean
   round: number
   consensus: Card | null
+  celebrationAt: number
   discussion: Discussion | null
   players: (Omit<Player, 'vote'> & { voted: boolean; vote?: Card | null })[]
 }
@@ -49,6 +51,7 @@ export function view(room: Room, you: string): Snapshot {
     type: 'state',
     serverNow: Date.now(),
     discussion: room.discussion,
+    celebrationAt: room.celebrationAt,
     you,
     host: room.host,
     revealed: room.revealed,
@@ -94,6 +97,10 @@ export function act(
     return true
   }
   if (id !== room.host) return false
+  if (message.type === 'celebrate' && now - room.celebrationAt >= 2000) {
+    room.celebrationAt = now
+    return true
+  }
   if (
     message.type === 'reveal' &&
     !room.revealed &&

@@ -11,6 +11,7 @@ function fixture(): Room {
     revealed: false,
     consensus: null,
     discussion: null,
+    celebrationAt: 0,
   }
 }
 describe('private voting and host authority', () => {
@@ -112,4 +113,13 @@ it('accepts slider boundaries and rejects invalid timer durations', () => {
     act(r, 'host', { type: 'reveal' })
     expect(act(r, 'host', { type: 'timer-start', seconds })).toBe(false)
   }
+})
+
+it('only lets the host celebrate and enforces a two-second cooldown', () => {
+  const r = fixture()
+  expect(act(r, 'guest', { type: 'celebrate' }, 5000)).toBe(false)
+  expect(act(r, 'host', { type: 'celebrate' }, 5000)).toBe(true)
+  expect(view(r, 'guest').celebrationAt).toBe(5000)
+  expect(act(r, 'host', { type: 'celebrate' }, 6000)).toBe(false)
+  expect(act(r, 'host', { type: 'celebrate' }, 7000)).toBe(true)
 })

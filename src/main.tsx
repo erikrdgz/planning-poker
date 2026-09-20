@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react'
 import { createRoot } from 'react-dom/client'
 import {
+  PartyPopper,
   ArrowUpRight,
   Check,
   ChevronRight,
@@ -19,9 +20,9 @@ import './style.css'
 
 const backgrounds = [
   { id: 'daylight', name: 'Daylight', color: '#eff1fc' },
-  { id: 'sky', name: 'Blue sky', color: '#d9f0fc' },
-  { id: 'peach', name: 'Peach club', color: '#ffe7d7' },
-  { id: 'mint', name: 'Fresh mint', color: '#d9f2e6' },
+  { id: 'sky', name: 'Contour', color: '#d9f0fc' },
+  { id: 'peach', name: 'Sunroom', color: '#ffe7d7' },
+  { id: 'mint', name: 'Graph paper', color: '#d9f2e6' },
 ]
 function CardFace({ value }: { value: Card }) {
   return value === 'coffee' ? (
@@ -44,6 +45,9 @@ function App() {
   const serverOffset = useRef(0)
   const [error, setError] = useState('')
   const [theme, setTheme] = useState('daylight')
+  const [dark, setDark] = useState(
+    () => window.matchMedia('(prefers-color-scheme: dark)').matches,
+  )
   const [customize, setCustomize] = useState(false)
   const [avatar, setAvatar] = useState(0)
   const [copied, setCopied] = useState(false)
@@ -126,8 +130,16 @@ function App() {
     else dialog.current?.close()
   }, [customize])
   useEffect(() => {
-    const key = `${code}-${room?.round}`
-    if (!room?.consensus || !room.revealed || seenCelebration.current === key)
+    const manual =
+      !!room?.celebrationAt &&
+      Date.now() + serverOffset.current - room.celebrationAt < 1900
+    const key = manual
+      ? `${code}-party-${room.celebrationAt}`
+      : `${code}-${room?.round}`
+    if (
+      (!manual && (!room?.consensus || !room.revealed)) ||
+      seenCelebration.current === key
+    )
       return
     seenCelebration.current = key
     setCelebrate(true)
@@ -136,7 +148,7 @@ function App() {
       clearTimeout(timer)
       setCelebrate(false)
     }
-  }, [room?.consensus, room?.revealed, room?.round, code])
+  }, [room?.consensus, room?.revealed, room?.round, room?.celebrationAt, code])
   useEffect(() => () => clearTimeout(copyTimer.current), [])
   function send(type: string, extra = {}) {
     if (socket.current?.readyState === WebSocket.OPEN)
@@ -181,7 +193,7 @@ function App() {
     }
   }
   return (
-    <div className={`app theme-${theme}`}>
+    <div className={`app theme-${theme} ${dark ? 'dark' : 'light'}`}>
       <header className="header">
         <a
           className="brand"
@@ -315,15 +327,34 @@ function App() {
                   Let’s think together<span className="heading-dot">.</span>
                 </h1>
               </div>
-              <button className="secondary" onClick={copy}>
-                {copied ? <Check size={17} /> : <Copy size={17} />}{' '}
-                {copied ? 'Link copied' : 'Invite teammates'}
-              </button>
+              <div className="room-actions">
+                {host && (
+                  <button
+                    className="secondary party-button"
+                    disabled={connection !== 'connected' || celebrate}
+                    onClick={() => send('celebrate')}
+                    aria-label="Celebrate with everyone"
+                    title="Confetti for everyone"
+                  >
+                    <PartyPopper size={18} />
+                    <span>Celebrate</span>
+                  </button>
+                )}
+                <button
+                  className={`secondary ${copied ? 'copy-confirmed' : ''}`}
+                  onClick={copy}
+                >
+                  {copied ? <Check size={17} /> : <Copy size={17} />}{' '}
+                  {copied ? 'Link copied' : 'Invite teammates'}
+                </button>
+              </div>
             </div>
             <div className="workspace-grid">
               <section className="table-panel">
                 <div className="table-toolbar">
-                  <span className="round-pill">ROUND {room?.round ?? 1}</span>
+                  <span key={room?.round} className="round-pill round-change">
+                    ROUND {room?.round ?? 1}
+                  </span>
                   <span className="privacy-label">
                     <Eye size={15} />
                     {room?.revealed
@@ -332,7 +363,7 @@ function App() {
                   </span>
                 </div>
                 <div className="table-scene">
-                  <div className="poker-table">
+                  <div className="poker-table" aria-live="polite">
                     <span className="table-emblem">
                       <Layers2 size={26} />
                     </span>
@@ -398,6 +429,7 @@ function App() {
                       key={p.id}
                     >
                       <div
+                        key={`${room.round}-${room.revealed}-${p.voted}`}
                         className={`mini-card ${room.revealed ? 'is-revealed' : p.voted ? 'is-voted' : ''}`}
                       >
                         {room.revealed ? (
@@ -702,8 +734,23 @@ function App() {
             </button>
           ))}
         </div>
-        <h3>Set the mood</h3>
-        <p>Your background is just for you.</p>
+        <div className="appearance-setting">
+          <div>
+            <h3>Dark mode</h3>
+            <p>A softer glow for late sessions.</p>
+          </div>
+          <button
+            className="mode-switch"
+            role="switch"
+            aria-checked={dark}
+            aria-label="Dark mode"
+            onClick={() => setDark(!dark)}
+          >
+            <span />
+          </button>
+        </div>
+        <h3>Set the scene</h3>
+        <p>Coordinated backgrounds, just for you.</p>
         <div className="background-picker">
           {backgrounds.map((bg) => (
             <button
@@ -712,7 +759,10 @@ function App() {
               aria-pressed={theme === bg.id}
               onClick={() => setTheme(bg.id)}
             >
-              <span style={{ background: bg.color }}>
+              <span
+                className={`scene-swatch swatch-${bg.id}`}
+                style={{ '--swatch': bg.color } as React.CSSProperties}
+              >
                 {theme === bg.id && <Check size={20} />}
               </span>
               {bg.name}
@@ -733,8 +783,11 @@ function App() {
               key={i}
               style={
                 {
-                  '--x': `${(i * 37) % 100}%`,
-                  '--delay': `${(i % 8) * 0.04}s`,
+                  '--x': `${[26, 50, 74][Math.floor(i / 20)]}%`,
+                  '--y': `${[43, 32, 46][Math.floor(i / 20)]}%`,
+                  '--dx': `${Math.cos(((i % 20) * Math.PI) / 10 + Math.floor(i / 20) * 0.27) * (20 + ((i * 7) % 17))}vmin`,
+                  '--dy': `${Math.sin(((i % 20) * Math.PI) / 10 + Math.floor(i / 20) * 0.27) * (20 + ((i * 7) % 17))}vmin`,
+                  '--delay': `${Math.floor(i / 20) * 0.16}s`,
                   '--rotation': `${i * 43}deg`,
                   '--color': ['#6260e8', '#f5b950', '#69bca2', '#ee879e'][
                     i % 4
