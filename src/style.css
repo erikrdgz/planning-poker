@@ -28,7 +28,7 @@
      rather than on .app because scroll-padding-top is set on the scroll
      container, which is the root element. */
   --header-h: 104px;
-  --header-gap: 40px;
+  --header-gap: 24px;
 
   /* The bar is fixed, so the top of the viewport is covered. Without this the
      browser does not know that, and anything that scrolls an element into
