@@ -699,7 +699,7 @@ h1 {
   letter-spacing: 0.8px;
   color: #9591b2;
   fill: currentColor;
-  margin-bottom: 14px;
+  margin-bottom: -18px;
 }
 .orbit-star {
   fill: var(--accent);
