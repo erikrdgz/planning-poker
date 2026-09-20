@@ -65,6 +65,8 @@ function useAutoHideHeader() {
           10,
         ) || 84
 
+      // Checked before direction, and independent of it: a zero-delta re-run
+      // from scrollend still has to be able to bring the bar back.
       if (y <= barHeight) setHidden(false)
       // A threshold keeps the bar still through the small corrections a
       // momentum scroll makes as it settles, which would otherwise flicker it.
@@ -77,9 +79,22 @@ function useAutoHideHeader() {
       if (!frame) frame = requestAnimationFrame(measure)
     }
 
+    // scroll events are coalesced, and the last one of a momentum scroll is
+    // the one that can go missing — which would leave the bar hidden at the
+    // top, the one place it must never be. scrollend fires once the scroll has
+    // actually finished, so the final state is always measured. Where it is
+    // unsupported the scroll handler alone behaves as before.
+    const onScrollEnd = () => {
+      if (frame) cancelAnimationFrame(frame)
+      frame = 0
+      measure()
+    }
+
     window.addEventListener('scroll', onScroll, { passive: true })
+    window.addEventListener('scrollend', onScrollEnd, { passive: true })
     return () => {
       window.removeEventListener('scroll', onScroll)
+      window.removeEventListener('scrollend', onScrollEnd)
       if (frame) cancelAnimationFrame(frame)
     }
   }, [])
