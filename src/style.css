@@ -669,8 +669,10 @@ h1 {
 }
 .lobby-notes {
   display: flex;
-  gap: 18px;
-  margin-top: 26px;
+  flex-wrap: wrap;
+  gap: 14px 28px;
+  margin-top: 36px;
+  line-height: 1.6;
   color: #898da1;
   font-size: 11px;
 }
@@ -688,16 +690,19 @@ h1 {
   justify-content: center;
 }
 .orbit-label {
-  font-size: 11px;
+  display: block;
+  width: min(340px, 100%);
+  height: auto;
+  flex-shrink: 0;
+  overflow: visible;
+  font-size: 12px;
   letter-spacing: 0.8px;
   color: #9591b2;
-  transform: rotate(-7deg);
-  margin-bottom: 40px;
+  fill: currentColor;
+  margin-bottom: 14px;
 }
-.orbit-label span {
-  font-size: 23px;
-  margin-right: 9px;
-  color: var(--accent);
+.orbit-star {
+  fill: var(--accent);
 }
 .fan {
   position: relative;
@@ -1125,7 +1130,7 @@ dialog h3 {
   }
   .lobby-notes {
     font-size: 10px;
-    gap: 12px;
+    gap: 12px 24px;
   }
   .lobby-preview {
     overflow: hidden;

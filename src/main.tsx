@@ -316,9 +316,22 @@ function App() {
               className="lobby-preview"
               aria-label="Planning poker card collection"
             >
-              <div className="orbit-label">
-                <span>✦</span> A fresh perspective at every seat.
-              </div>
+              <svg
+                className="orbit-label"
+                viewBox="0 0 340 90"
+                role="img"
+                aria-label="A fresh perspective at every seat."
+              >
+                <defs>
+                  <path id="perspective-arc" d="M 15,86 Q 170,-18 325,86" />
+                </defs>
+                <text textAnchor="middle">
+                  <textPath href="#perspective-arc" startOffset="50%">
+                    <tspan className="orbit-star">✦ </tspan>A fresh perspective
+                    at every seat.
+                  </textPath>
+                </text>
+              </svg>
               <div className="fan">
                 <div className="sample-card sample-one">
                   <span>3</span>
