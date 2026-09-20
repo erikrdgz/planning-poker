@@ -12,10 +12,17 @@
      overruns zero as a refresh; Safari does not, which is why it only ever
      showed up in one of them.
 
+     `contain` rather than `none`: both stop the gesture chaining out to the
+     browser's refresher, which is the part that matters, but `none` also
+     kills the rubber-band at the boundary — and without it an upward flick
+     was terminating early and leaving the page parked ~105px short of the
+     top, with the heading behind the bar. `contain` keeps the boundary
+     behaving normally so the scroll settles at zero.
+
      On :root as well as body: the viewport takes its overscroll behaviour
      from the root element and only falls back to body when the root leaves
      it auto. */
-  overscroll-behavior-y: none;
+  overscroll-behavior-y: contain;
 
   /* The bar's height, and the room a heading gets below it. They live here
      rather than on .app because scroll-padding-top is set on the scroll
@@ -37,7 +44,7 @@
 }
 body {
   margin: 0;
-  overscroll-behavior-y: none;
+  overscroll-behavior-y: contain;
 }
 button,
 input {
@@ -161,6 +168,18 @@ button svg {
   padding: 0 56px;
   border-bottom: 1px solid #e4e7ef;
   background: var(--header-surface);
+  /* Leaves on the way down, returns on the way up — see useAutoHideHeader.
+     Transform rather than top so it never reflows the page under it. */
+  transition: transform 0.25s ease;
+  will-change: transform;
+}
+.header[data-hidden='true'] {
+  transform: translateY(-100%);
+}
+@media (prefers-reduced-motion: reduce) {
+  .header {
+    transition: none;
+  }
 }
 .brand {
   display: flex;

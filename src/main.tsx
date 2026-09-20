@@ -34,7 +34,61 @@ function CardFace({ value }: { value: Card }) {
 }
 const roomsAvailable =
   import.meta.env.BASE_URL === '/' || !!import.meta.env.VITE_ROOM_SERVER_URL
+/**
+ * The bar is fixed, so it is always over the top of the page. That is what a
+ * reader wants for the settings and leave-room controls and not what they want
+ * while reading, so it leaves on the way down and comes back on the way up.
+ *
+ * Below the bar's own height it is always shown: there is nothing to reclaim
+ * that close to the top, and hiding it there would take the controls away at
+ * the one point the reader is most likely to reach for them.
+ *
+ * Reads are coalesced into a frame because scroll fires far more often than
+ * anything here needs to run.
+ */
+function useAutoHideHeader() {
+  const [hidden, setHidden] = useState(false)
+
+  useEffect(() => {
+    let previous = window.scrollY
+    let frame = 0
+
+    const measure = () => {
+      frame = 0
+      const y = window.scrollY
+      const delta = y - previous
+      const barHeight =
+        parseInt(
+          getComputedStyle(document.documentElement).getPropertyValue(
+            '--header-h',
+          ),
+          10,
+        ) || 84
+
+      if (y <= barHeight) setHidden(false)
+      // A threshold keeps the bar still through the small corrections a
+      // momentum scroll makes as it settles, which would otherwise flicker it.
+      else if (Math.abs(delta) > 6) setHidden(delta > 0)
+
+      previous = y
+    }
+
+    const onScroll = () => {
+      if (!frame) frame = requestAnimationFrame(measure)
+    }
+
+    window.addEventListener('scroll', onScroll, { passive: true })
+    return () => {
+      window.removeEventListener('scroll', onScroll)
+      if (frame) cancelAnimationFrame(frame)
+    }
+  }, [])
+
+  return hidden
+}
+
 function App() {
+  const headerHidden = useAutoHideHeader()
   const [room, setRoom] = useState<Snapshot | null>(null)
   const [code, setCode] = useState(
     () => new URLSearchParams(location.search).get('room') ?? '',
@@ -235,7 +289,7 @@ function App() {
   }
   return (
     <div className={`app theme-${theme} ${dark ? 'dark' : 'light'}`}>
-      <header className="header">
+      <header className="header" data-hidden={headerHidden}>
         <a
           className="brand"
           href={location.pathname}
