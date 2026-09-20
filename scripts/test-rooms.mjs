@@ -112,11 +112,15 @@ try {
   send(host, 'reset')
   await until(() => clients.every((c) => c.state.discussion === null))
   await delay(80)
+  const priorCelebration = host.state.celebrationAt
   send(guest, 'celebrate')
   await delay(100)
-  assert.equal(host.state.celebrationAt, 0)
+  assert.equal(host.state.celebrationAt, priorCelebration)
+  await until(() => Date.now() - priorCelebration >= 2000)
   send(host, 'celebrate')
-  await until(() => clients.every((c) => c.state.celebrationAt > 0))
+  await until(() =>
+    clients.every((c) => c.state.celebrationAt > priorCelebration),
+  )
   assert(
     clients.every((c) => c.state.celebrationAt === host.state.celebrationAt),
   )

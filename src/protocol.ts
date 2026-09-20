@@ -152,6 +152,7 @@ export function act(
       )
         ? room.players[0].vote
         : null
+    if (room.consensus !== null) room.celebrationAt = now
     return true
   }
   if (

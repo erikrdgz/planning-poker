@@ -155,3 +155,26 @@ it('rejects unsafe or oversized ticket links', () => {
     act(r, 'host', { type: 'ticket-update', title: 'Title only', url: '' }),
   ).toBe(true)
 })
+
+it('emits a shared celebration on reveal for every matching card including zero and coffee', () => {
+  for (const card of ['0', '1', '2', '3', '5', '8', '13', 'coffee']) {
+    const r = fixture()
+    for (const p of r.players) act(r, p.id, { type: 'vote', card })
+    expect(r.celebrationAt).toBe(0)
+    act(r, 'host', { type: 'reveal' }, 10000)
+    expect(r.consensus).toBe(card)
+    expect(view(r, 'host').celebrationAt).toBe(10000)
+    expect(view(r, 'guest').celebrationAt).toBe(10000)
+    expect(act(r, 'host', { type: 'reveal' }, 12000)).toBe(false)
+    expect(r.celebrationAt).toBe(10000)
+  }
+})
+it('does not celebrate incomplete votes or disagreement', () => {
+  for (const card of [null, '8']) {
+    const r = fixture()
+    act(r, 'host', { type: 'vote', card: '5' })
+    if (card) act(r, 'guest', { type: 'vote', card })
+    act(r, 'host', { type: 'reveal' }, 10000)
+    expect(r.celebrationAt).toBe(0)
+  }
+})
