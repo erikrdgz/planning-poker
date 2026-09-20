@@ -851,6 +851,7 @@ function App() {
         </span>
       </footer>
       <dialog
+        className="settings-dialog"
         aria-label="Customize your space"
         ref={dialog}
         onCancel={() => setCustomize(false)}
@@ -861,7 +862,8 @@ function App() {
         <div className="dialog-header">
           <div>
             <span className="eyebrow">YOUR CORNER OF THE ROOM</span>
-            <h2>Make yourself at home.</h2>
+            <h2>Settings</h2>
+            <p>A space that feels like yours.</p>
           </div>
           <button
             className="icon-button"
@@ -871,126 +873,164 @@ function App() {
             <X size={20} />
           </button>
         </div>
-        <p>
-          {room?.profilesEnabled
-            ? 'Choose a face. Share a little about yourself, if you like.'
-            : 'Choose a face. Keep your name to yourself.'}
-        </p>
-        {host && (
-          <div className="appearance-setting">
-            <div>
-              <h3>Allow names and positions</h3>
-              <p>
-                Optional for everyone. Turning this off clears shared details.
-              </p>
+        <div className="settings-body">
+          {host && (
+            <section
+              className="settings-section"
+              aria-labelledby="room-settings-heading"
+            >
+              <div className="settings-section-heading">
+                <h3 id="room-settings-heading">Room settings</h3>
+                <span className="settings-badge">Host only</span>
+              </div>
+              <div className="appearance-setting">
+                <div>
+                  <h3>Allow names and positions</h3>
+                  <p>
+                    Optional for everyone. Turning this off clears shared
+                    details.
+                  </p>
+                </div>
+                <button
+                  className="mode-switch"
+                  role="switch"
+                  aria-label="Allow names and positions"
+                  aria-checked={room?.profilesEnabled ?? false}
+                  onClick={() =>
+                    send('profiles-setting', {
+                      enabled: !room?.profilesEnabled,
+                    })
+                  }
+                >
+                  <span />
+                </button>
+              </div>
+            </section>
+          )}
+          <section
+            className="settings-section"
+            aria-labelledby="profile-settings-heading"
+          >
+            <h3 id="profile-settings-heading">Your profile</h3>
+            <p className="settings-description">
+              {room?.profilesEnabled
+                ? 'Your name and position are optional and visible to the room.'
+                : 'Stay anonymous. Pick an avatar for your seat.'}
+            </p>
+            {room?.profilesEnabled && (
+              <form
+                className="profile-editor"
+                id="participant-profile"
+                key={`${room.you}-${customize}-${room.profilesEnabled}`}
+                onSubmit={(e) => {
+                  e.preventDefault()
+                  const data = new FormData(e.currentTarget)
+                  send('profile-update', {
+                    name: data.get('name'),
+                    position: data.get('position'),
+                  })
+                  setCustomize(false)
+                }}
+              >
+                <label>
+                  <span className="field-label">
+                    Name <span>(optional)</span>
+                  </span>
+                  <input
+                    name="name"
+                    maxLength={60}
+                    defaultValue={me?.name ?? ''}
+                    placeholder="Your name"
+                  />
+                </label>
+                <label>
+                  <span className="field-label">
+                    Position <span>(optional)</span>
+                  </span>
+                  <input
+                    name="position"
+                    maxLength={80}
+                    defaultValue={me?.position ?? ''}
+                    placeholder="Your job title"
+                  />
+                </label>
+              </form>
+            )}
+            <h4>Avatar</h4>
+            <div className="avatar-picker">
+              {AVATARS.map((a, i) => (
+                <button
+                  key={a}
+                  aria-label={`Choose ${a} avatar`}
+                  aria-pressed={(me?.avatar ?? avatar) === i}
+                  className={(me?.avatar ?? avatar) === i ? 'active' : ''}
+                  onClick={() => {
+                    setAvatar(i)
+                    send('avatar', { avatar: i })
+                  }}
+                >
+                  {a}
+                </button>
+              ))}
             </div>
-            <button
-              className="mode-switch"
-              role="switch"
-              aria-label="Allow names and positions"
-              aria-checked={room?.profilesEnabled ?? false}
-              onClick={() =>
-                send('profiles-setting', { enabled: !room?.profilesEnabled })
-              }
-            >
-              <span />
-            </button>
-          </div>
-        )}
-        {room?.profilesEnabled && (
-          <form
-            className="profile-editor"
-            key={`${room.you}-${customize}-${room.profilesEnabled}`}
-            onSubmit={(e) => {
-              e.preventDefault()
-              const data = new FormData(e.currentTarget)
-              send('profile-update', {
-                name: data.get('name'),
-                position: data.get('position'),
-              })
-              setCustomize(false)
-            }}
+          </section>
+          <section
+            className="settings-section"
+            aria-labelledby="appearance-settings-heading"
           >
-            <label>
-              Name <span>(optional)</span>
-              <input
-                name="name"
-                maxLength={60}
-                defaultValue={me?.name ?? ''}
-                placeholder="Your name"
-              />
-            </label>
-            <label>
-              Position <span>(optional)</span>
-              <input
-                name="position"
-                maxLength={80}
-                defaultValue={me?.position ?? ''}
-                placeholder="Your job title"
-              />
-            </label>
-            <button className="primary" type="submit">
-              Save profile
-            </button>
-          </form>
-        )}
-        <div className="avatar-picker">
-          {AVATARS.map((a, i) => (
-            <button
-              key={a}
-              aria-label={`Choose ${a} avatar`}
-              aria-pressed={(me?.avatar ?? avatar) === i}
-              className={(me?.avatar ?? avatar) === i ? 'active' : ''}
-              onClick={() => {
-                setAvatar(i)
-                send('avatar', { avatar: i })
-              }}
-            >
-              {a}
-            </button>
-          ))}
+            <h3 id="appearance-settings-heading">Appearance</h3>
+            <p className="settings-description">
+              These choices only change your view.
+            </p>
+            <div className="appearance-setting">
+              <div>
+                <h4>Dark mode</h4>
+                <p>A softer glow for late sessions.</p>
+              </div>
+              <button
+                className="mode-switch"
+                role="switch"
+                aria-checked={dark}
+                aria-label="Dark mode"
+                onClick={() => setDark(!dark)}
+              >
+                <span />
+              </button>
+            </div>
+            <h4 className="background-heading">Background</h4>
+            <div className="background-picker">
+              {backgrounds.map((bg) => (
+                <button
+                  key={bg.id}
+                  className={theme === bg.id ? 'active' : ''}
+                  aria-pressed={theme === bg.id}
+                  onClick={() => setTheme(bg.id)}
+                >
+                  <span
+                    className={`scene-swatch swatch-${bg.id}`}
+                    style={{ '--swatch': bg.color } as React.CSSProperties}
+                  >
+                    {theme === bg.id && <Check size={20} />}
+                  </span>
+                  {bg.name}
+                </button>
+              ))}
+            </div>
+          </section>
         </div>
-        <div className="appearance-setting">
-          <div>
-            <h3>Dark mode</h3>
-            <p>A softer glow for late sessions.</p>
-          </div>
+        <div className="settings-footer">
           <button
-            className="mode-switch"
-            role="switch"
-            aria-checked={dark}
-            aria-label="Dark mode"
-            onClick={() => setDark(!dark)}
+            className="primary dialog-done"
+            type={room?.profilesEnabled ? 'submit' : 'button'}
+            form={room?.profilesEnabled ? 'participant-profile' : undefined}
+            onClick={
+              room?.profilesEnabled ? undefined : () => setCustomize(false)
+            }
           >
-            <span />
+            {room?.profilesEnabled ? 'Save and close' : 'Done'}{' '}
+            <Check size={17} />
           </button>
         </div>
-        <h3>Set the scene</h3>
-        <p>Coordinated backgrounds, just for you.</p>
-        <div className="background-picker">
-          {backgrounds.map((bg) => (
-            <button
-              key={bg.id}
-              className={theme === bg.id ? 'active' : ''}
-              aria-pressed={theme === bg.id}
-              onClick={() => setTheme(bg.id)}
-            >
-              <span
-                className={`scene-swatch swatch-${bg.id}`}
-                style={{ '--swatch': bg.color } as React.CSSProperties}
-              >
-                {theme === bg.id && <Check size={20} />}
-              </span>
-              {bg.name}
-            </button>
-          ))}
-        </div>
-        <button
-          className="primary dialog-done"
-          onClick={() => setCustomize(false)}
-        >
-          Looks like me <Check size={17} />
-        </button>
       </dialog>
       {celebrate && (
         <div className="confetti" aria-hidden="true">

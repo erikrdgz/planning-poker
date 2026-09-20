@@ -2397,3 +2397,163 @@ dialog {
   border-color: #566078;
   color: #edf0ff;
 }
+
+.settings-dialog {
+  padding: 0;
+  width: min(580px, calc(100% - 32px));
+  max-height: min(880px, calc(100dvh - 48px));
+  overflow: hidden;
+  border-color: #e3e3ed;
+}
+.settings-dialog[open] {
+  display: flex;
+  flex-direction: column;
+}
+.settings-dialog .dialog-header {
+  padding: 24px 28px 20px;
+  flex-shrink: 0;
+  border-bottom: 1px solid #e8e8f0;
+  align-items: flex-start;
+}
+.settings-dialog .dialog-header h2 {
+  margin: 6px 0 0;
+  font-size: 26px;
+}
+.settings-dialog .dialog-header p {
+  margin: 8px 0 0;
+  line-height: 1.5;
+}
+.settings-dialog .dialog-header .icon-button {
+  flex-shrink: 0;
+}
+.settings-body {
+  padding: 0 28px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+.settings-section {
+  padding: 24px 0;
+}
+.settings-section + .settings-section {
+  border-top: 1px solid #e8e8f0;
+}
+.settings-dialog .settings-section h3 {
+  font-size: 16px;
+  margin: 0;
+  font-weight: 700;
+}
+.settings-section-heading {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.settings-badge {
+  font-size: 11px;
+  font-weight: 600;
+  background: var(--soft);
+  color: var(--accent);
+  padding: 4px 8px;
+  border-radius: 6px;
+}
+.settings-dialog .settings-description {
+  margin: 8px 0 20px;
+  line-height: 1.6;
+  font-size: 13px;
+}
+.settings-dialog .appearance-setting {
+  margin: 16px 0 0;
+  padding: 0;
+  border: 0;
+  gap: 24px;
+}
+.settings-dialog .appearance-setting h3,
+.settings-dialog h4 {
+  font-size: 14px;
+  font-weight: 600;
+  margin: 0;
+}
+.settings-dialog .appearance-setting p {
+  line-height: 1.6;
+  max-width: 340px;
+  margin: 6px 0 0;
+}
+.settings-dialog .profile-editor {
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin: 0 0 24px;
+}
+.settings-dialog .field-label {
+  color: inherit;
+  display: block;
+  font-weight: 500;
+}
+.settings-dialog .field-label > span {
+  font-size: 12px;
+  font-weight: 400;
+}
+.settings-dialog .avatar-picker {
+  margin-top: 12px;
+  gap: 10px;
+}
+.settings-dialog .avatar-picker button {
+  font-size: 26px;
+  max-height: 62px;
+}
+.settings-dialog .background-heading {
+  margin: 24px 0 12px;
+}
+.settings-footer {
+  flex-shrink: 0;
+  padding: 16px 28px;
+  border-top: 1px solid #e8e8f0;
+  display: flex;
+  justify-content: flex-end;
+  background: #f9faff;
+}
+.settings-dialog .dialog-done {
+  margin: 0;
+  width: auto;
+  min-width: 120px;
+  padding: 12px 20px;
+  font-size: 14px;
+}
+.dark .settings-dialog .dialog-header,
+.dark .settings-section + .settings-section,
+.dark .settings-footer {
+  border-color: #ffffff20;
+}
+.dark .settings-footer {
+  background: #202536;
+}
+.dark .settings-dialog .settings-description,
+.dark .settings-dialog .dialog-header p,
+.dark .settings-dialog .appearance-setting p {
+  color: #abb4cb;
+}
+@media (max-width: 520px) {
+  .settings-dialog {
+    max-height: calc(100dvh - 24px);
+  }
+  .settings-dialog .dialog-header {
+    padding: 20px;
+  }
+  .settings-body {
+    padding: 0 20px;
+  }
+  .settings-section {
+    padding: 22px 0;
+  }
+  .settings-footer {
+    padding: 14px 20px;
+  }
+  .settings-dialog .profile-editor {
+    grid-template-columns: 1fr;
+    gap: 14px;
+  }
+  .settings-dialog .avatar-picker {
+    gap: 6px;
+  }
+  .settings-dialog .avatar-picker button {
+    font-size: 23px;
+  }
+}
