@@ -894,12 +894,33 @@ function App() {
           </div>
         )}
       </main>
-      <footer>
-        <span>Independent thoughts. Better conversations.</span>
-        <span>
-          Made for a little more togetherness{' '}
-          <span className="footer-flower">✳</span>
-        </span>
+      <footer className="product-footer">
+        <div className="product-footer-brand">
+          <strong>
+            common ground<span aria-hidden="true">✳</span>
+          </strong>
+          <p>Independent thoughts. Better conversations.</p>
+          <small>Designed and built by Erik Rodríguez</small>
+        </div>
+        <nav aria-label="Project links">
+          <a href="https://www.erikrod.com" target="_blank" rel="noreferrer">
+            Portfolio <span aria-hidden="true">↗</span>
+          </a>
+          <a
+            href="https://www.erikrod.com/common-ground"
+            target="_blank"
+            rel="noreferrer"
+          >
+            Behind the project
+          </a>
+          <a
+            href="https://github.com/erikrdgz/planning-poker"
+            target="_blank"
+            rel="noreferrer"
+          >
+            View source
+          </a>
+        </nav>
       </footer>
       <dialog
         className="settings-dialog"
