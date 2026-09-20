@@ -76,6 +76,10 @@ button svg {
      soft overlay, so the wash is the right base for them; the dark theme
      variants below paint something else and say so. */
   --header-surface: var(--wash);
+  /* The header's height, reserved below as padding. Sticky left this to the
+     flow and it did not hold up everywhere; an explicit reservation does. */
+  --header-h: 104px;
+  padding-top: var(--header-h);
   min-height: 100svh;
   background:
     radial-gradient(ellipse at 35% 40%, #fff9 0, transparent 65%), var(--wash);
@@ -117,10 +121,12 @@ button svg {
      the header clipping the page. Content has to pass cleanly behind the
      chrome and come out intact. The themes still surround the header and
      tint it through --header-surface; the surface itself is solid. */
-  position: sticky;
+  position: fixed;
   top: 0;
+  left: 0;
+  right: 0;
   z-index: 30;
-  height: 104px;
+  height: var(--header-h);
   max-width: 1440px;
   width: 100%;
   margin: auto;
@@ -1005,6 +1011,9 @@ dialog h3 {
   }
 }
 @media (max-width: 800px) {
+  .app {
+    --header-h: 84px;
+  }
   .header {
     height: 84px;
     padding: 0 22px;
