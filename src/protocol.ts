@@ -19,6 +19,8 @@ export interface Player {
   avatar: number
   seat: number
   vote: Card | null
+  name?: string
+  position?: string
 }
 export interface Discussion {
   status: 'offered' | 'running' | 'dismissed'
@@ -49,6 +51,7 @@ export interface Room {
   round: number
   consensus: Card | null
   celebrationAt: number
+  profilesEnabled: boolean
   ticket: Ticket
   discussion: Discussion | null
 }
@@ -61,6 +64,7 @@ export interface Snapshot {
   round: number
   consensus: Card | null
   celebrationAt: number
+  profilesEnabled: boolean
   ticket: Ticket
   discussion: Discussion | null
   players: (Omit<Player, 'vote'> & { voted: boolean; vote?: Card | null })[]
@@ -68,6 +72,7 @@ export interface Snapshot {
 export function view(room: Room, you: string): Snapshot {
   return {
     type: 'state',
+    profilesEnabled: room.profilesEnabled,
     serverNow: Date.now(),
     ticket: room.ticket,
     discussion: room.discussion,
@@ -81,6 +86,7 @@ export function view(room: Room, you: string): Snapshot {
       id: p.id,
       avatar: p.avatar,
       seat: p.seat,
+      ...(room.profilesEnabled ? { name: p.name, position: p.position } : {}),
       voted: p.vote !== null,
       ...(room.revealed || p.id === you ? { vote: p.vote } : {}),
     })),
@@ -90,6 +96,9 @@ export function act(
   room: Room,
   id: string,
   message: {
+    enabled?: unknown
+    name?: unknown
+    position?: unknown
     type?: unknown
     card?: unknown
     avatar?: unknown
@@ -118,7 +127,32 @@ export function act(
     player.avatar = Number(message.avatar)
     return true
   }
+  if (message.type === 'profile-update') {
+    if (
+      !room.profilesEnabled ||
+      typeof message.name !== 'string' ||
+      typeof message.position !== 'string' ||
+      message.name.length > 60 ||
+      message.position.length > 80
+    )
+      return false
+    player.name = message.name.trim()
+    player.position = message.position.trim()
+    return true
+  }
   if (id !== room.host) return false
+  if (
+    message.type === 'profiles-setting' &&
+    typeof message.enabled === 'boolean'
+  ) {
+    room.profilesEnabled = message.enabled
+    if (!message.enabled)
+      room.players.forEach((p) => {
+        delete p.name
+        delete p.position
+      })
+    return true
+  }
   if (message.type === 'ticket-update') {
     if (
       typeof message.title !== 'string' ||
@@ -132,8 +166,8 @@ export function act(
     room.ticket = { title: message.title.trim(), url }
     return true
   }
-  if (message.type === 'celebrate' && now - room.celebrationAt >= 2000) {
-    room.celebrationAt = now
+  if (message.type === 'timer-offer' && room.revealed) {
+    room.discussion = { status: 'offered', endsAt: null, duration: 0 }
     return true
   }
   if (

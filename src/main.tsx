@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react'
 import { createRoot } from 'react-dom/client'
 import {
-  PartyPopper,
+  Timer,
   ArrowUpRight,
   Check,
   ChevronRight,
@@ -159,6 +159,12 @@ function App() {
     }
   }, [room?.celebrationAt, code])
   useEffect(() => () => clearTimeout(copyTimer.current), [])
+  function editTicket() {
+    setTicketTitle(room?.ticket?.title ?? '')
+    setTicketLink(room?.ticket?.url ?? '')
+    setTicketError('')
+    setEditingTicket(true)
+  }
   function send(type: string, extra = {}) {
     if (socket.current?.readyState === WebSocket.OPEN)
       socket.current.send(JSON.stringify({ type, ...extra }))
@@ -356,13 +362,13 @@ function App() {
                 {host && (
                   <button
                     className="secondary party-button"
-                    disabled={connection !== 'connected' || celebrate}
-                    onClick={() => send('celebrate')}
-                    aria-label="Celebrate with everyone"
-                    title="Confetti for everyone"
+                    disabled={connection !== 'connected' || !room?.revealed}
+                    onClick={() => send('timer-offer')}
+                    aria-label="Set discussion timer"
+                    title="Set a timer after revealing cards"
                   >
-                    <PartyPopper size={18} />
-                    <span>Celebrate</span>
+                    <Timer size={18} />
+                    <span>Timer</span>
                   </button>
                 )}
                 <button
@@ -374,111 +380,118 @@ function App() {
                 </button>
               </div>
             </div>
-            <section className="ticket-panel" aria-label="Current Jira ticket">
-              <div className="ticket-summary">
-                <div>
-                  <span className="eyebrow">ON THE TABLE</span>
-                  <h2>{room?.ticket?.title || 'No ticket selected yet'}</h2>
-                  {!room?.ticket?.title && (
-                    <p>
-                      {host
-                        ? 'Add a title and Jira link to give this round some context.'
-                        : 'Your host will add the ticket for this round.'}
-                    </p>
-                  )}
-                </div>
-                <div className="ticket-actions">
-                  {room?.ticket?.url && (
-                    <a
-                      className="jira-link"
-                      href={room.ticket.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                    >
-                      <img
-                        src={`${import.meta.env.BASE_URL}jira.svg`}
-                        width="18"
-                        height="18"
-                        alt=""
-                      />
-                      Open on Jira
-                      <ArrowUpRight size={16} />
-                    </a>
-                  )}
-                  {host && (
-                    <button
-                      className="secondary"
-                      disabled={connection !== 'connected'}
-                      onClick={() => {
-                        setTicketTitle(room?.ticket?.title ?? '')
-                        setTicketLink(room?.ticket?.url ?? '')
-                        setTicketError('')
-                        setEditingTicket(!editingTicket)
-                      }}
-                    >
-                      {editingTicket
-                        ? 'Cancel'
-                        : room?.ticket?.title
-                          ? 'Edit ticket'
-                          : 'Add ticket'}
-                    </button>
-                  )}
-                </div>
-              </div>
-              {host && editingTicket && (
-                <form
-                  className="ticket-editor"
-                  onSubmit={(e) => {
-                    e.preventDefault()
-                    const url = ticketUrl(ticketLink)
-                    if (url === null) {
-                      setTicketError(
-                        'Enter a full https:// or http:// Jira ticket link.',
-                      )
-                      return
-                    }
-                    send('ticket-update', { title: ticketTitle, url })
-                    setEditingTicket(false)
-                    setTicketError('')
-                  }}
-                >
-                  <label>
-                    Ticket title
+            {(room?.ticket?.title ||
+              room?.ticket?.url ||
+              (host && editingTicket)) && (
+              <section
+                className="ticket-panel"
+                aria-label="Current Jira ticket"
+              >
+                {host && editingTicket ? (
+                  <form
+                    className="ticket-editor"
+                    onSubmit={(e) => {
+                      e.preventDefault()
+                      const url = ticketUrl(ticketLink)
+                      if (url === null) {
+                        setTicketError(
+                          'Enter a full https:// or http:// Jira ticket link.',
+                        )
+                        return
+                      }
+                      send('ticket-update', { title: ticketTitle, url })
+                      setEditingTicket(false)
+                      setTicketError('')
+                    }}
+                  >
                     <input
                       autoFocus
+                      aria-label="Ticket title"
                       maxLength={160}
                       value={ticketTitle}
                       onChange={(e) => setTicketTitle(e.target.value)}
-                      placeholder="PROJ-42 · Improve the search experience"
+                      placeholder="Ticket title"
                     />
-                  </label>
-                  <label>
-                    Jira ticket link
                     <input
+                      aria-label="Jira ticket link"
                       type="url"
                       maxLength={2048}
                       value={ticketLink}
                       onChange={(e) => setTicketLink(e.target.value)}
-                      placeholder="https://your-team.atlassian.net/browse/PROJ-42"
+                      placeholder="Jira ticket link"
                     />
-                  </label>
-                  <button
-                    className="primary"
-                    disabled={connection !== 'connected'}
-                    type="submit"
-                  >
-                    Save ticket
-                  </button>
-                  {ticketError && <p role="alert">{ticketError}</p>}
-                </form>
-              )}
-            </section>
+                    <button
+                      className="primary"
+                      disabled={connection !== 'connected'}
+                      type="submit"
+                    >
+                      Save ticket
+                    </button>
+                    <button
+                      className="ticket-cancel"
+                      type="button"
+                      aria-label="Cancel ticket editing"
+                      onClick={() => setEditingTicket(false)}
+                    >
+                      <X size={17} />
+                    </button>
+                    {ticketError && <p role="alert">{ticketError}</p>}
+                  </form>
+                ) : (
+                  <div className="ticket-summary">
+                    {room?.ticket?.title && <h2>{room.ticket.title}</h2>}
+                    <div className="ticket-actions">
+                      {room?.ticket?.url && (
+                        <a
+                          className="jira-link"
+                          href={room.ticket.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                        >
+                          <img
+                            src={`${import.meta.env.BASE_URL}jira.svg`}
+                            width="16"
+                            height="16"
+                            alt=""
+                          />
+                          Open on Jira
+                          <ArrowUpRight size={15} />
+                        </a>
+                      )}
+                      {host && (
+                        <button
+                          className="ticket-edit"
+                          disabled={connection !== 'connected'}
+                          onClick={editTicket}
+                        >
+                          Edit ticket
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </section>
+            )}
             <div className="workspace-grid">
               <section className="table-panel">
                 <div className="table-toolbar">
-                  <span key={room?.round} className="round-pill round-change">
-                    ROUND {room?.round ?? 1}
-                  </span>
+                  <div className="round-tools">
+                    <span key={room?.round} className="round-pill round-change">
+                      ROUND {room?.round ?? 1}
+                    </span>
+                    {host &&
+                      !editingTicket &&
+                      !room?.ticket?.title &&
+                      !room?.ticket?.url && (
+                        <button
+                          className="ticket-add"
+                          disabled={connection !== 'connected'}
+                          onClick={editTicket}
+                        >
+                          + Add ticket
+                        </button>
+                      )}
+                  </div>
                   <span className="privacy-label">
                     <Eye size={15} />
                     {room?.revealed
@@ -570,7 +583,11 @@ function App() {
                       </div>
                       <span className="seat-avatar">{AVATARS[p.avatar]}</span>
                       <span className="seat-name">
-                        {p.id === room.you ? 'You' : `Player ${p.seat}`}
+                        {room.profilesEnabled && p.name
+                          ? `${p.name}${p.id === room.you ? ' (you)' : ''}`
+                          : p.id === room.you
+                            ? 'You'
+                            : `Player ${p.seat}`}
                         {p.id === room.host && <small>HOST</small>}
                       </span>
                     </div>
@@ -591,10 +608,18 @@ function App() {
                       </span>
                       <div>
                         <strong>
-                          {p.id === room.you ? 'You' : `Player ${p.seat}`}
+                          {room.profilesEnabled && p.name
+                            ? `${p.name}${p.id === room.you ? ' (you)' : ''}`
+                            : p.id === room.you
+                              ? 'You'
+                              : `Player ${p.seat}`}
                         </strong>
                         <span>
-                          {p.id === room.host ? 'Room host' : 'Team member'}
+                          {room.profilesEnabled && p.position
+                            ? p.position
+                            : p.id === room.host
+                              ? 'Room host'
+                              : 'Team member'}
                         </span>
                       </div>
                       <span
@@ -628,7 +653,7 @@ function App() {
               (host || discussion.status === 'running') && (
                 <section
                   className={`coffee-break ${host ? '' : 'guest-timer'}`}
-                  aria-label="Coffee discussion"
+                  aria-label="Discussion timer"
                 >
                   {host && (
                     <>
@@ -643,7 +668,7 @@ function App() {
                         <span className="eyebrow">A PAUSE WITH PURPOSE</span>
                         <h2>
                           {discussion.status === 'offered'
-                            ? 'Someone’s got a question.'
+                            ? 'Make room for discussion.'
                             : remaining > 0
                               ? 'Let it brew.'
                               : 'Time’s up. Where did we land?'}
@@ -846,7 +871,69 @@ function App() {
             <X size={20} />
           </button>
         </div>
-        <p>Choose a face. Keep your name to yourself.</p>
+        <p>
+          {room?.profilesEnabled
+            ? 'Choose a face. Share a little about yourself, if you like.'
+            : 'Choose a face. Keep your name to yourself.'}
+        </p>
+        {host && (
+          <div className="appearance-setting">
+            <div>
+              <h3>Allow names and positions</h3>
+              <p>
+                Optional for everyone. Turning this off clears shared details.
+              </p>
+            </div>
+            <button
+              className="mode-switch"
+              role="switch"
+              aria-label="Allow names and positions"
+              aria-checked={room?.profilesEnabled ?? false}
+              onClick={() =>
+                send('profiles-setting', { enabled: !room?.profilesEnabled })
+              }
+            >
+              <span />
+            </button>
+          </div>
+        )}
+        {room?.profilesEnabled && (
+          <form
+            className="profile-editor"
+            key={`${room.you}-${customize}-${room.profilesEnabled}`}
+            onSubmit={(e) => {
+              e.preventDefault()
+              const data = new FormData(e.currentTarget)
+              send('profile-update', {
+                name: data.get('name'),
+                position: data.get('position'),
+              })
+              setCustomize(false)
+            }}
+          >
+            <label>
+              Name <span>(optional)</span>
+              <input
+                name="name"
+                maxLength={60}
+                defaultValue={me?.name ?? ''}
+                placeholder="Your name"
+              />
+            </label>
+            <label>
+              Position <span>(optional)</span>
+              <input
+                name="position"
+                maxLength={80}
+                defaultValue={me?.position ?? ''}
+                placeholder="Your job title"
+              />
+            </label>
+            <button className="primary" type="submit">
+              Save profile
+            </button>
+          </form>
+        )}
         <div className="avatar-picker">
           {AVATARS.map((a, i) => (
             <button

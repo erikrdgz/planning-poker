@@ -11,6 +11,7 @@ interface Attachment {
   host: string
   round: number
   revealed: boolean
+  profilesEnabled: boolean
   celebrationAt: number
   ticket: Room['ticket']
   discussion: Room['discussion']
@@ -26,6 +27,7 @@ export class PokerRoom extends DurableObject<Env> {
     consensus: null,
     discussion: null,
     ticket: { title: '', url: '' },
+    profilesEnabled: false,
     celebrationAt: 0,
   }
   sockets = new Map<WebSocket, Attachment>()
@@ -42,6 +44,7 @@ export class PokerRoom extends DurableObject<Env> {
         consensus: data.consensus,
         discussion: data.discussion ?? null,
         ticket: data.ticket ?? { title: '', url: '' },
+        profilesEnabled: data.profilesEnabled ?? false,
         celebrationAt: data.celebrationAt ?? 0,
       })
     }
@@ -87,6 +90,7 @@ export class PokerRoom extends DurableObject<Env> {
       consensus: this.room.consensus,
       discussion: this.room.discussion,
       ticket: this.room.ticket,
+      profilesEnabled: this.room.profilesEnabled,
       celebrationAt: this.room.celebrationAt,
       last: 0,
     })
@@ -138,6 +142,7 @@ export class PokerRoom extends DurableObject<Env> {
         consensus: null,
         discussion: null,
         ticket: { title: '', url: '' },
+        profilesEnabled: false,
         celebrationAt: 0,
       }
     this.broadcast()
@@ -151,6 +156,7 @@ export class PokerRoom extends DurableObject<Env> {
         consensus: this.room.consensus,
         discussion: this.room.discussion,
         ticket: this.room.ticket,
+        profilesEnabled: this.room.profilesEnabled,
         celebrationAt: this.room.celebrationAt,
       })
       ws.serializeAttachment(data)

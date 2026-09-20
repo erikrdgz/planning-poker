@@ -12,6 +12,7 @@ function fixture(): Room {
     consensus: null,
     discussion: null,
     ticket: { title: '', url: '' },
+    profilesEnabled: false,
     celebrationAt: 0,
   }
 }
@@ -116,13 +117,21 @@ it('accepts slider boundaries and rejects invalid timer durations', () => {
   }
 })
 
-it('only lets the host celebrate and enforces a two-second cooldown', () => {
+it('allows the host to open and reopen a timer after any reveal', () => {
   const r = fixture()
-  expect(act(r, 'guest', { type: 'celebrate' }, 5000)).toBe(false)
-  expect(act(r, 'host', { type: 'celebrate' }, 5000)).toBe(true)
-  expect(view(r, 'guest').celebrationAt).toBe(5000)
-  expect(act(r, 'host', { type: 'celebrate' }, 6000)).toBe(false)
-  expect(act(r, 'host', { type: 'celebrate' }, 7000)).toBe(true)
+  expect(act(r, 'host', { type: 'timer-offer' })).toBe(false)
+  act(r, 'host', { type: 'vote', card: '3' })
+  act(r, 'host', { type: 'reveal' })
+  expect(r.discussion).toBeNull()
+  expect(act(r, 'guest', { type: 'timer-offer' })).toBe(false)
+  expect(act(r, 'host', { type: 'timer-offer' })).toBe(true)
+  expect(act(r, 'host', { type: 'timer-start', seconds: 600 })).toBe(true)
+  act(r, 'host', { type: 'timer-dismiss' })
+  expect(act(r, 'host', { type: 'timer-offer' })).toBe(true)
+  expect(act(r, 'host', { type: 'timer-start', seconds: 30 })).toBe(true)
+  expect(act(r, 'host', { type: 'timer-offer' })).toBe(true)
+  expect(r.discussion?.status).toBe('offered')
+  expect(act(r, 'host', { type: 'celebrate' })).toBe(false)
 })
 
 it('only the host can set ticket details and resets clear them', () => {
@@ -177,4 +186,68 @@ it('does not celebrate incomplete votes or disagreement', () => {
     act(r, 'host', { type: 'reveal' }, 10000)
     expect(r.celebrationAt).toBe(0)
   }
+})
+
+describe('optional participant profiles', () => {
+  it('defaults to anonymous and only allows the host to enable profiles', () => {
+    const r = fixture()
+    expect(view(r, 'guest').profilesEnabled).toBe(false)
+    expect(act(r, 'guest', { type: 'profiles-setting', enabled: true })).toBe(
+      false,
+    )
+    expect(
+      act(r, 'guest', {
+        type: 'profile-update',
+        name: 'Alex',
+        position: 'Designer',
+      }),
+    ).toBe(false)
+    expect(act(r, 'host', { type: 'profiles-setting', enabled: true })).toBe(
+      true,
+    )
+    expect(
+      act(r, 'guest', {
+        type: 'profile-update',
+        name: ' Alex ',
+        position: 'Designer',
+      }),
+    ).toBe(true)
+    expect(view(r, 'host').players[1]).toMatchObject({
+      name: 'Alex',
+      position: 'Designer',
+    })
+    expect(r.players[0].name).toBeUndefined()
+    act(r, 'host', { type: 'reset' })
+    expect(r.profilesEnabled).toBe(true)
+    expect(r.players[1].name).toBe('Alex')
+    act(r, 'host', { type: 'profiles-setting', enabled: false })
+    expect(r.players[1].name).toBeUndefined()
+    expect(view(r, 'guest').players[1]).not.toHaveProperty('position')
+    act(r, 'host', { type: 'profiles-setting', enabled: true })
+    expect(r.players[1].name).toBeUndefined()
+  })
+  it('rejects invalid profiles and permits clearing optional fields', () => {
+    const r = fixture()
+    act(r, 'host', { type: 'profiles-setting', enabled: true })
+    expect(
+      act(r, 'guest', {
+        type: 'profile-update',
+        name: 'a'.repeat(61),
+        position: '',
+      }),
+    ).toBe(false)
+    expect(
+      act(r, 'guest', {
+        type: 'profile-update',
+        name: '',
+        position: 'a'.repeat(81),
+      }),
+    ).toBe(false)
+    expect(
+      act(r, 'guest', { type: 'profile-update', name: 123, position: '' }),
+    ).toBe(false)
+    expect(
+      act(r, 'guest', { type: 'profile-update', name: '', position: '' }),
+    ).toBe(true)
+  })
 })

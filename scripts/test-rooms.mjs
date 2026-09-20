@@ -112,22 +112,46 @@ try {
   send(host, 'reset')
   await until(() => clients.every((c) => c.state.discussion === null))
   await delay(80)
-  const priorCelebration = host.state.celebrationAt
-  send(guest, 'celebrate')
+  send(host, 'timer-offer')
   await delay(100)
-  assert.equal(host.state.celebrationAt, priorCelebration)
-  await until(() => Date.now() - priorCelebration >= 2000)
-  send(host, 'celebrate')
+  assert.equal(host.state.discussion, null)
+  send(host, 'vote', { card: '3' })
+  await delay(100)
+  send(host, 'reveal')
+  await until(() => clients.every((c) => c.state.revealed))
+  send(guest, 'timer-offer')
+  await delay(100)
+  assert.equal(host.state.discussion, null)
+  send(host, 'timer-offer')
   await until(() =>
-    clients.every((c) => c.state.celebrationAt > priorCelebration),
+    clients.every((c) => c.state.discussion?.status === 'offered'),
   )
+  await delay(80)
+  send(host, 'timer-start', { seconds: 30 })
+  await until(() =>
+    clients.every((c) => c.state.discussion?.status === 'running'),
+  )
+  await delay(80)
+  send(host, 'profiles-setting', { enabled: true })
+  await until(() => clients.every((c) => c.state.profilesEnabled))
+  send(guest, 'profile-update', { name: 'Alex', position: 'Designer' })
+  await until(() =>
+    clients.every(
+      (c) => c.state.players.find((p) => p.id === guest.id)?.name === 'Alex',
+    ),
+  )
+  await delay(80)
+  send(host, 'profiles-setting', { enabled: false })
+  await until(() => clients.every((c) => !c.state.profilesEnabled))
   assert(
-    clients.every((c) => c.state.celebrationAt === host.state.celebrationAt),
+    clients.every((c) =>
+      c.state.players.every((p) => !('name' in p) && !('position' in p)),
+    ),
   )
   host.ws.close()
   await until(() => guest.state.host === guest.id)
   console.log(
-    'PASS: 25 players, capacity rejection, private payloads, host-only reveal/reset, consensus, round clearing, host transfer, shared 10-minute timer, timer dismissal and reset, host-only shared confetti.',
+    'PASS: 25 players, capacity rejection, private payloads, host-only reveal/reset, consensus, round clearing, host transfer, shared 10-minute timer, timer dismissal and reset, automatic consensus confetti, host-only timer access after reveal, optional profiles and profile removal.',
   )
 } finally {
   for (const c of clients) c.ws.close()

@@ -1,6 +1,6 @@
 # Common Ground
 
-A small, anonymous Planning Poker room for up to 25 Agile teammates. Built with React, TypeScript, Vite, and Cloudflare Workers.
+A small, anonymous-by-default Planning Poker room for up to 25 Agile teammates. Built with React, TypeScript, Vite, and Cloudflare Workers.
 
 ## Local development
 
@@ -27,9 +27,10 @@ node scripts/test-rooms.mjs # with the local room server running
 - Pick one card: 0, 1, 2, 3, 5, 8, 13, or coffee for discussion. Change it until reveal.
 - Each player receives their own vote; everyone else's value is omitted from the server response until the host reveals.
 - Only the host can reveal or reset. A new round clears every vote.
-- A host-only celebration button sends a synchronized confetti event to everyone, with a server-enforced two-second cooldown.
+- Complete agreement triggers synchronized confetti automatically on reveal.
+- Names and positions are optional and only available when the host enables them in settings. Disabling the setting clears the shared profile details.
 - Matching votes from every participant (at least two) trigger confetti for 1.9 seconds. Reduced-motion preferences suppress it.
-- Revealing any coffee card offers an optional shared discussion timer. The host chooses 30 seconds to 10 minutes with a slider, or declines. Everyone sees the same deadline; the host can stop early, and the next round clears it.
+- Revealing any coffee card offers an optional shared discussion timer. The host chooses 30 seconds to 10 minutes with a slider, or declines. The host can also open or reset the timer from the Timer button any time after reveal. Only hosts see the prompt; everyone sees the same running deadline; the host can stop early, and the next round clears it.
 - A gently fanned hand of cards lifts the current selection, with a compact two-row layout on phones.
 - Twelve emoji avatars and four coordinated background scenes (Daylight, Contour, Sunroom, Graph paper), with dark mode in settings. Anonymous player numbers differentiate matching avatars.
 - If the host leaves, hosting transfers to the next connected player. A reconnect is a new participant if its previous connection has already closed. Active duplicate connections with the same private connection token replace the old connection.
