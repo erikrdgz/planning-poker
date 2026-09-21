@@ -34,6 +34,22 @@ function CardFace({ value }: { value: Card }) {
 }
 const roomsAvailable =
   import.meta.env.BASE_URL === '/' || !!import.meta.env.VITE_ROOM_SERVER_URL
+const PING = '{"type":"ping"}'
+const LEAVING = 4000
+// Phones hand back a freshly reloaded page after a spell in the background.
+// A token that outlives the reload is what lets someone walk back into the
+// seat they already had, still holding the card they played.
+function participantToken() {
+  try {
+    const saved = sessionStorage.getItem('common-ground-token')
+    if (saved) return saved
+    const fresh = crypto.randomUUID()
+    sessionStorage.setItem('common-ground-token', fresh)
+    return fresh
+  } catch {
+    return crypto.randomUUID()
+  }
+}
 function App() {
   const [room, setRoom] = useState<Snapshot | null>(null)
   const [code, setCode] = useState(
@@ -67,8 +83,13 @@ function App() {
   const dialog = useRef<HTMLDialogElement>(null)
   const seenCelebration = useRef('')
   const copyTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
-  const id = useRef(crypto.randomUUID())
+  const id = useRef(participantToken())
   const creating = useRef(false)
+  const [attempt, setAttempt] = useState(0)
+  const retries = useRef(0)
+  const retryTimer = useRef<ReturnType<typeof setTimeout> | undefined>(
+    undefined,
+  )
   const me = room?.players.find((p) => p.id === room.you)
   const host = room?.host === room?.you && !!room
   const voted = room?.players.filter((p) => p.voted).length ?? 0
@@ -86,6 +107,24 @@ function App() {
     )
     return () => clearInterval(tick)
   }, [discussion?.status, discussion?.endsAt])
+  useEffect(() => {
+    retries.current = 0
+    clearTimeout(retryTimer.current)
+  }, [code])
+  useEffect(() => () => clearTimeout(retryTimer.current), [])
+  useEffect(() => {
+    if (!code) return
+    const wake = () => {
+      if (document.visibilityState !== 'visible') return
+      const state = socket.current?.readyState
+      if (state === WebSocket.OPEN || state === WebSocket.CONNECTING) return
+      clearTimeout(retryTimer.current)
+      retries.current = 0
+      setAttempt((a) => a + 1)
+    }
+    document.addEventListener('visibilitychange', wake)
+    return () => document.removeEventListener('visibilitychange', wake)
+  }, [code])
   useEffect(() => {
     if (!code) return
     if (!roomsAvailable) {
@@ -107,10 +146,14 @@ function App() {
     if (creating.current) url.searchParams.set('create', '1')
     const ws = new WebSocket(url)
     socket.current = ws
+    const beat = setInterval(() => {
+      if (ws.readyState === WebSocket.OPEN) ws.send(PING)
+    }, 25000)
     ws.onmessage = (e) => {
       if (!active) return
       const message = JSON.parse(e.data)
       if (message.type === 'state') {
+        retries.current = 0
         serverOffset.current = message.serverNow - Date.now()
         setNow(Date.now() + serverOffset.current)
         setRoom(message)
@@ -122,30 +165,33 @@ function App() {
     ws.onopen = () => {
       ws.send(JSON.stringify({ type: 'avatar', avatar }))
     }
-    ws.onclose = () => {
-      if (active) {
-        setConnection('error')
-        setError(
-          'Connection closed. The room may have ended, reached 25 people, or gone offline. Rejoin or start a new room.',
+    ws.onclose = (event) => {
+      clearInterval(beat)
+      if (!active || event.code === LEAVING) return
+      if (event.code !== 1000 && retries.current < 10) {
+        retryTimer.current = setTimeout(
+          () => setAttempt((a) => a + 1),
+          Math.min(8000, 400 * 2 ** retries.current++),
         )
+        setConnection('connecting')
+        return
       }
-    }
-    ws.onerror = () => {
-      if (active) {
-        setConnection('error')
-        setError(
-          'Couldn’t connect to this room. Check your connection and try again.',
-        )
-      }
+      setConnection('error')
+      setError(
+        event.code === 1000
+          ? 'This room is open in another tab. Continue there, or rejoin here.'
+          : 'Connection closed. The room may have ended, reached 25 people, or gone offline. Rejoin or start a new room.',
+      )
     }
     return () => {
       active = false
+      clearInterval(beat)
       ws.close()
       socket.current = null
     }
     // Avatar is sent on connect and changed separately while connected.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [code])
+  }, [code, attempt])
   useEffect(() => {
     if (customize) dialog.current?.showModal()
     else dialog.current?.close()
@@ -202,7 +248,7 @@ function App() {
     setCode(next)
   }
   function leave() {
-    socket.current?.close()
+    socket.current?.close(LEAVING, 'left')
     history.replaceState(null, '', location.pathname)
     setCode('')
     setRoom(null)

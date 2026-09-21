@@ -1,5 +1,9 @@
 import { DurableObject } from 'cloudflare:workers'
 import { act, view, type Room, type Player } from '../src/protocol'
+const GRACE = 60_000
+const LEAVING = 4000
+const PING = '{"type":"ping"}'
+const PONG = '{"type":"pong"}'
 interface Env {
   PUBLIC_APP_ORIGIN?: string
   ROOMS: DurableObjectNamespace<PokerRoom>
@@ -7,19 +11,21 @@ interface Env {
 }
 interface Attachment {
   token: string
-  player: Player
-  host: string
-  round: number
-  revealed: boolean
-  profilesEnabled: boolean
-  celebrationAt: number
-  ticket: Room['ticket']
-  discussion: Room['discussion']
-  consensus: Room['consensus']
+  id: string
   last: number
 }
-export class PokerRoom extends DurableObject<Env> {
-  room: Room = {
+// A seat belongs to a token, not to a socket. `away` is the moment the socket
+// went quiet; null means someone is sitting in it right now.
+interface Seat {
+  id: string
+  away: number | null
+}
+interface Stored {
+  room: Room
+  seats: [string, Seat][]
+}
+function emptyRoom(): Room {
+  return {
     players: [],
     host: '',
     round: 1,
@@ -30,24 +36,32 @@ export class PokerRoom extends DurableObject<Env> {
     profilesEnabled: false,
     celebrationAt: 0,
   }
+}
+export class PokerRoom extends DurableObject<Env> {
+  room: Room = emptyRoom()
+  seats = new Map<string, Seat>()
   sockets = new Map<WebSocket, Attachment>()
   constructor(ctx: DurableObjectState, env: Env) {
     super(ctx, env)
-    for (const ws of ctx.getWebSockets()) {
-      const data = ws.deserializeAttachment() as Attachment
-      this.sockets.set(ws, data)
-      this.room.players.push(data.player)
-      Object.assign(this.room, {
-        host: data.host,
-        round: data.round,
-        revealed: data.revealed,
-        consensus: data.consensus,
-        discussion: data.discussion ?? null,
-        ticket: data.ticket ?? { title: '', url: '' },
-        profilesEnabled: data.profilesEnabled ?? false,
-        celebrationAt: data.celebrationAt ?? 0,
-      })
-    }
+    // Idle connections are dropped by phones and proxies long before anyone
+    // has stopped thinking, so answer heartbeats without waking the room.
+    ctx.setWebSocketAutoResponse(new WebSocketRequestResponsePair(PING, PONG))
+    ctx.blockConcurrencyWhile(async () => {
+      const stored = await ctx.storage.get<Stored>('room')
+      if (stored) {
+        this.room = stored.room
+        this.seats = new Map(stored.seats)
+      }
+      for (const ws of ctx.getWebSockets())
+        this.sockets.set(ws, ws.deserializeAttachment() as Attachment)
+      // A restart kills sockets without a closing handshake. Start the grace
+      // period for anyone left behind so no seat is held by a ghost.
+      const now = Date.now()
+      for (const seat of this.seats.values())
+        if (!this.connected(seat.id)) seat.away ??= now
+      this.schedule()
+      this.save()
+    })
   }
   async fetch(request: Request) {
     const url = new URL(request.url)
@@ -60,42 +74,35 @@ export class PokerRoom extends DurableObject<Env> {
       return new Response('This room has ended. Create a new room.', {
         status: 404,
       })
-    const existing = [...this.sockets.values()].find(
-      (data) => data.token === token,
-    )?.player
-    if (!existing && this.room.players.length >= 25)
+    const held = this.seats.get(token)
+    const returning = held && this.room.players.find((p) => p.id === held.id)
+    if (!returning && this.room.players.length >= 25)
       return new Response('This room is full (25 people).', { status: 409 })
-    if (existing)
-      for (const [ws, data] of this.sockets)
-        if (data.token === token) {
-          this.sockets.delete(ws)
-          ws.close(1000, 'Joined from another tab')
-        }
-    const player = existing ?? {
+    for (const [ws, data] of this.sockets)
+      if (data.token === token) {
+        this.sockets.delete(ws)
+        ws.close(1000, 'Joined from another tab')
+      }
+    const player = returning ?? {
       id: crypto.randomUUID(),
       avatar: Math.floor(Math.random() * 12),
       seat: Math.max(0, ...this.room.players.map((p) => p.seat)) + 1,
       vote: null,
     }
-    if (!existing) this.room.players.push(player)
+    if (!returning) this.room.players.push(player)
+    this.seats.set(token, { id: player.id, away: null })
     if (!this.room.host) this.room.host = player.id
     const [client, server] = Object.values(new WebSocketPair())
     this.ctx.acceptWebSocket(server)
-    this.sockets.set(server, {
-      token,
-      player,
-      host: this.room.host,
-      round: this.room.round,
-      revealed: this.room.revealed,
-      consensus: this.room.consensus,
-      discussion: this.room.discussion,
-      ticket: this.room.ticket,
-      profilesEnabled: this.room.profilesEnabled,
-      celebrationAt: this.room.celebrationAt,
-      last: 0,
-    })
+    const data: Attachment = { token, id: player.id, last: 0 }
+    server.serializeAttachment(data)
+    this.sockets.set(server, data)
+    this.schedule()
     this.broadcast()
     return new Response(null, { status: 101, webSocket: client })
+  }
+  connected(id: string) {
+    return [...this.sockets.values()].some((data) => data.id === id)
   }
   webSocketMessage(ws: WebSocket, raw: string | ArrayBuffer) {
     const data = this.sockets.get(ws)
@@ -108,7 +115,7 @@ export class PokerRoom extends DurableObject<Env> {
       if (
         message &&
         typeof message === 'object' &&
-        act(this.room, data.player.id, message)
+        act(this.room, data.id, message)
       )
         this.broadcast()
     } catch {
@@ -120,48 +127,67 @@ export class PokerRoom extends DurableObject<Env> {
       )
     }
   }
-  webSocketClose(ws: WebSocket) {
-    this.remove(ws)
+  webSocketClose(ws: WebSocket, code: number) {
+    this.part(ws, code === LEAVING)
   }
   webSocketError(ws: WebSocket) {
-    this.remove(ws)
+    this.part(ws, false)
   }
-  remove(ws: WebSocket) {
+  // Leaving on purpose empties the seat at once. Anything else holds it, and
+  // the card already on the table, until the grace period runs out.
+  part(ws: WebSocket, deliberate: boolean) {
     const data = this.sockets.get(ws)
     if (!data) return
     this.sockets.delete(ws)
-    this.room.players = this.room.players.filter((p) => p.id !== data.player.id)
-    if (this.room.host === data.player.id)
-      this.room.host = this.room.players[0]?.id ?? ''
-    if (!this.room.players.length)
-      this.room = {
-        players: [],
-        host: '',
-        round: 1,
-        revealed: false,
-        consensus: null,
-        discussion: null,
-        ticket: { title: '', url: '' },
-        profilesEnabled: false,
-        celebrationAt: 0,
-      }
+    const seat = this.seats.get(data.token)
+    if (deliberate) this.drop(data.id)
+    else if (seat) seat.away = Date.now()
+    this.schedule()
     this.broadcast()
   }
-  broadcast() {
-    for (const [ws, data] of this.sockets) {
-      Object.assign(data, {
-        host: this.room.host,
-        round: this.room.round,
-        revealed: this.room.revealed,
-        consensus: this.room.consensus,
-        discussion: this.room.discussion,
-        ticket: this.room.ticket,
-        profilesEnabled: this.room.profilesEnabled,
-        celebrationAt: this.room.celebrationAt,
+  drop(id: string) {
+    for (const [token, seat] of this.seats)
+      if (seat.id === id) this.seats.delete(token)
+    this.room.players = this.room.players.filter((p) => p.id !== id)
+    if (this.room.host === id)
+      this.room.host =
+        this.room.players.find((p) => this.connected(p.id))?.id ??
+        this.room.players[0]?.id ??
+        ''
+    if (!this.room.players.length) {
+      this.room = emptyRoom()
+      this.seats.clear()
+    }
+  }
+  schedule() {
+    const due = Math.min(
+      ...[...this.seats.values()]
+        .filter((seat) => seat.away !== null)
+        .map((seat) => seat.away! + GRACE),
+    )
+    if (Number.isFinite(due)) this.ctx.storage.setAlarm(due)
+    else this.ctx.storage.deleteAlarm()
+  }
+  async alarm() {
+    const now = Date.now()
+    for (const seat of [...this.seats.values()])
+      if (seat.away !== null && now - seat.away >= GRACE) this.drop(seat.id)
+    this.schedule()
+    this.broadcast()
+  }
+  save() {
+    if (!this.room.players.length) this.ctx.storage.deleteAll()
+    else
+      this.ctx.storage.put<Stored>('room', {
+        room: this.room,
+        seats: [...this.seats],
       })
-      ws.serializeAttachment(data)
+  }
+  broadcast() {
+    this.save()
+    for (const [ws, data] of this.sockets) {
       try {
-        ws.send(JSON.stringify(view(this.room, data.player.id)))
+        ws.send(JSON.stringify(view(this.room, data.id)))
       } catch {
         /* Close/error handler removes disconnected participants. */
       }
