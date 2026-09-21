@@ -2701,28 +2701,29 @@ dialog {
     transform: translateY(-6px);
   }
 }
-/* Playing a card leaves its place in the hand until it is returned. */
+/* Playing a card lifts it toward the table and sets it back down wearing its
+   chosen colours, so the hand is never left with a hole in it. The lift rides
+   on `translate`/`scale`, which compose with whatever `transform` the layout
+   has given the card, so the fan keeps its tilt and the grid keeps its slot. */
 .estimate-card:not(.selected) {
   animation: card-deal-in 0.36s cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 .estimate-card.selected {
-  animation: card-play-away 0.48s cubic-bezier(0.22, 0.7, 0.3, 1) both;
-  opacity: 0;
-  pointer-events: none;
+  animation: card-play 0.54s cubic-bezier(0.22, 0.7, 0.3, 1);
   z-index: 20;
 }
-@keyframes card-play-away {
+@keyframes card-play {
   0% {
-    opacity: 1;
-    transform: translateY(calc(var(--arc) - 12px)) rotate(var(--tilt)) scale(1);
+    translate: 0 0;
+    scale: 1;
   }
-  35% {
-    opacity: 1;
-    transform: translateY(-40px) rotate(0deg) scale(1.04);
+  38% {
+    translate: 0 -54px;
+    scale: 1.06;
   }
   100% {
-    opacity: 0;
-    transform: translateY(-110px) rotate(0deg) scale(0.82);
+    translate: 0 0;
+    scale: 1;
   }
 }
 @keyframes card-deal-in {
@@ -2737,9 +2738,6 @@ dialog {
   }
 }
 @media (prefers-reduced-motion: reduce) {
-  .estimate-card.selected {
-    opacity: 0;
-  }
   .ticket-editor.is-closing {
     opacity: 0;
   }
